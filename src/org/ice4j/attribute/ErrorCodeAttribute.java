@@ -129,6 +129,17 @@ public class ErrorCodeAttribute extends Attribute
      */
     public static final char GLOBAL_FAILURE = 600;
 
+    /* TURN Error codes. */
+    /**
+     * Address Family not Supported error code.
+     */
+    public static final char ADDRESS_FAMILY_NOT_SUPPORTED = 440;
+
+    /**
+     * Peer Address Family Mismatch error code.
+     */
+    public static final char PEER_ADDRESS_FAMILY_MISMATCH = 443;
+
     /**
      * The class represents the hundreds digit of the response code.  The
      * value MUST be between 1 and 6.
@@ -266,6 +277,11 @@ public class ErrorCodeAttribute extends Attribute
                     +"client should try again.";
             case 600: return "(Global Failure:) The server is refusing to fulfill the request."
                     +"The client should not retry.";
+            /*Turn Error codes*/
+            case 440: return "(Address Family not Supported):  The server does not support the "
+                    +"address family requested by the client.";
+            case 443: return "Peer Address Family Mismatch):  A peer address was of a different address family";
+
 
             default:  return "Unknown Error";
         }
