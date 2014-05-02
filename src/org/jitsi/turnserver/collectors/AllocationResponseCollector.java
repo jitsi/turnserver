@@ -18,10 +18,10 @@ import org.ice4j.stack.*;
 public class AllocationResponseCollector 
 		implements ResponseCollector 
 {
-	/**
-	 * The <tt>Logger</tt> used by the <tt>AllocationresponseCollector</tt> class
-	 * and its instances for logging output.
-	 */
+    /**
+     * The <tt>Logger</tt> used by the <tt>AllocationresponseCollector</tt> class
+     * and its instances for logging output.
+     */
     private static final Logger logger 
 	= Logger.getLogger(AllocationResponseCollector.class.getName());
 

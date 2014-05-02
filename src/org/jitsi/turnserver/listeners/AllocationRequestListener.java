@@ -12,7 +12,7 @@ import org.ice4j.stack.*;
 
 /**
  * The class that would be handling and responding to incoming Allocation requests that are
- * validated and sends a success or error response
+ * Allocation and sends a success or error response
  * 
  * @author Aakash Garg
  */
@@ -30,7 +30,7 @@ public class AllocationRequestListener
 
 	/**
 	 * The indicator which determines whether this
-	 * <tt>ValidatedrequestListener</tt> is currently started.
+	 * <tt>AllocationrequestListener</tt> is currently started.
 	 */
 	private boolean started = false;
 
@@ -132,8 +132,8 @@ public class AllocationRequestListener
 	}
 
 	/**
-	 * Stops this <tt>ValidatedRequestListenerr</tt>. A stopped
-	 * <tt>ValidatedRequestListenerr</tt> can be restarted by calling
+	 * Stops this <tt>AllocationRequestListenerr</tt>. A stopped
+	 * <tt>AllocationRequestListenerr</tt> can be restarted by calling
 	 * {@link #start()} on it.
 	 */
 	public void stop() 
