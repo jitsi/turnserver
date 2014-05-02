@@ -1,2 +1,5 @@
 .idea
 bin
+.project
+.classpath
+.settings
