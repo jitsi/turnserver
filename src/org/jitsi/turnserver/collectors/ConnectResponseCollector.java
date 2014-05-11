@@ -19,16 +19,16 @@ import org.ice4j.stack.StunStack;
  * 
  * @author Aakash Garg
  */
-public class ConnectResponseCollector 
-		implements ResponseCollector 
+public class ConnectResponseCollector
+    implements ResponseCollector
 {
 
     /**
      * The <tt>Logger</tt> used by the <tt>ConnectresponseCollector</tt> class
      * and its instances for logging output.
      */
-    private static final Logger logger 
-	= Logger.getLogger(ConnectResponseCollector.class.getName());
+    private static final Logger logger = Logger
+        .getLogger(ConnectResponseCollector.class.getName());
 
     private final StunStack stunStack;
 
@@ -37,58 +37,65 @@ public class ConnectResponseCollector
      * 
      * @param stunStack
      */
-    public ConnectResponseCollector(StunStack stunStack) 
+    public ConnectResponseCollector(StunStack stunStack)
     {
-	this.stunStack = stunStack;
+        this.stunStack = stunStack;
     }
 
-    /* (non-Javadoc)
-     * @see org.ice4j.ResponseCollector#processResponse(org.ice4j.StunResponseEvent)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * org.ice4j.ResponseCollector#processResponse(org.ice4j.StunResponseEvent)
      */
     @Override
-    public void processResponse(StunResponseEvent evt) 
+    public void processResponse(StunResponseEvent evt)
     {
-	if (logger.isLoggable(Level.FINER))
-	{
-		logger.finer("Received response " + evt);
-	}
-	Message message = evt.getMessage();
-	if(message.getMessageType()==Message.CONNECT_ERROR_RESPONSE)
-	{
-	    ErrorCodeAttribute errorCodeAttribute = 
-		    (ErrorCodeAttribute) message.getAttribute(Attribute.ERROR_CODE);
-	    switch(errorCodeAttribute.getErrorCode())
-	    {
-	    	case ErrorCodeAttribute.ALLOCATION_MISMATCH :
-	    	    //code for bad response error
-	    	    break;
-	    	case ErrorCodeAttribute.CONNECTION_ALREADY_EXISTS:
-	    	    //code for processing connection already exists error
-	    	    break;
-	    	case ErrorCodeAttribute.FORBIDDEN : 
-	    	    //code for processing forbidden error code
-	    	    break;
-	    	case ErrorCodeAttribute.CONNECTION_TIMEOUT_OR_FAILURE : 
-	    	    //code for processing connection timeout or failure error code.
-	    	    break;
-	    }
-	}
-	else if(message.getMessageType()==Message.CONNECT_RESPONSE)
-	{
-	    //code for doing processing of Connect success response
-	}else
-	{
-	    return;
-	}
+        if (logger.isLoggable(Level.FINER))
+        {
+            logger.finer("Received response " + evt);
+        }
+        Message message = evt.getMessage();
+        if (message.getMessageType() == Message.CONNECT_ERROR_RESPONSE)
+        {
+            ErrorCodeAttribute errorCodeAttribute =
+                (ErrorCodeAttribute) message.getAttribute(Attribute.ERROR_CODE);
+            switch (errorCodeAttribute.getErrorCode())
+            {
+            case ErrorCodeAttribute.ALLOCATION_MISMATCH:
+                // code for bad response error
+                break;
+            case ErrorCodeAttribute.CONNECTION_ALREADY_EXISTS:
+                // code for processing connection already exists error
+                break;
+            case ErrorCodeAttribute.FORBIDDEN:
+                // code for processing forbidden error code
+                break;
+            case ErrorCodeAttribute.CONNECTION_TIMEOUT_OR_FAILURE:
+                // code for processing connection timeout or failure error code.
+                break;
+            }
+        }
+        else if (message.getMessageType() == Message.CONNECT_RESPONSE)
+        {
+            // code for doing processing of Connect success response
+        }
+        else
+        {
+            return;
+        }
     }
 
-    /* (non-Javadoc)
-     * @see org.ice4j.ResponseCollector#processTimeout(org.ice4j.StunTimeoutEvent)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * org.ice4j.ResponseCollector#processTimeout(org.ice4j.StunTimeoutEvent)
      */
     @Override
-    public void processTimeout(StunTimeoutEvent event) 
+    public void processTimeout(StunTimeoutEvent event)
     {
-	// TODO Auto-generated method stub
+        // TODO Auto-generated method stub
 
     }
 

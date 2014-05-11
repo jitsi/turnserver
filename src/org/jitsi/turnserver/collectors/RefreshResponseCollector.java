@@ -18,15 +18,15 @@ import org.ice4j.stack.StunStack;
  * 
  * @author Aakash Garg
  */
-public class RefreshResponseCollector 
-		implements ResponseCollector 
+public class RefreshResponseCollector
+    implements ResponseCollector
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>RefreshresponseCollector</tt>
-     * class and its instances for logging output.
+     * The <tt>Logger</tt> used by the <tt>RefreshresponseCollector</tt> class
+     * and its instances for logging output.
      */
     private static final Logger logger = Logger
-	    .getLogger(RefreshResponseCollector.class.getName());
+        .getLogger(RefreshResponseCollector.class.getName());
 
     private final StunStack stunStack;
 
@@ -35,9 +35,9 @@ public class RefreshResponseCollector
      * 
      * @param stunStack
      */
-    public RefreshResponseCollector(StunStack stunStack) 
+    public RefreshResponseCollector(StunStack stunStack)
     {
-	this.stunStack = stunStack;
+        this.stunStack = stunStack;
     }
 
     /*
@@ -47,25 +47,25 @@ public class RefreshResponseCollector
      * org.ice4j.ResponseCollector#processResponse(org.ice4j.StunResponseEvent)
      */
     @Override
-    public void processResponse(StunResponseEvent evt) 
+    public void processResponse(StunResponseEvent evt)
     {
-	if (logger.isLoggable(Level.FINER))
-	{
-		logger.finer("Received response " + evt);
-	}
-	Message message = evt.getMessage();
-	if(message.getMessageType()== Message.REFRESH_ERROR_RESPONSE)
-	{
-	    //delete allocation
-	}
-	else if(message.getMessageType()==Message.REFRESH_RESPONSE)
-	{
-	    //update allocation
-	}
-	else
-	{
-	    return;
-	}
+        if (logger.isLoggable(Level.FINER))
+        {
+            logger.finer("Received response " + evt);
+        }
+        Message message = evt.getMessage();
+        if (message.getMessageType() == Message.REFRESH_ERROR_RESPONSE)
+        {
+            // delete allocation
+        }
+        else if (message.getMessageType() == Message.REFRESH_RESPONSE)
+        {
+            // update allocation
+        }
+        else
+        {
+            return;
+        }
     }
 
     /*
@@ -75,7 +75,7 @@ public class RefreshResponseCollector
      * org.ice4j.ResponseCollector#processTimeout(org.ice4j.StunTimeoutEvent)
      */
     @Override
-    public void processTimeout(StunTimeoutEvent event) 
+    public void processTimeout(StunTimeoutEvent event)
     {
 
     }
