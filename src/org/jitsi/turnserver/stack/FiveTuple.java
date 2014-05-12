@@ -1,3 +1,10 @@
+/*
+ * TurnServer, the OpenSource Java Solution for TURN protocol. Maintained by the
+ * Jitsi community (http://jitsi.org).
+ * 
+ * Distributable under LGPL license. See terms of license at gnu.org.
+ */
+
 package org.jitsi.turnserver.stack;
 
 import java.util.logging.*;
@@ -16,8 +23,8 @@ public class FiveTuple
      * The <tt>Logger</tt> used by the <tt>FiveTuple</tt> class and its
      * instances for logging output.
      */
-    private static final Logger logger 
-        = Logger.getLogger(FiveTuple.class.getName());
+    private static final Logger logger = Logger.getLogger(FiveTuple.class
+        .getName());
 
     /**
      * Represents the Client's Transport Address.

@@ -1,3 +1,10 @@
+/*
+ * TurnServer, the OpenSource Java Solution for TURN protocol. Maintained by the
+ * Jitsi community (http://jitsi.org).
+ * 
+ * Distributable under LGPL license. See terms of license at gnu.org.
+ */
+
 package org.jitsi.turnserver.stack;
 
 import org.ice4j.*;

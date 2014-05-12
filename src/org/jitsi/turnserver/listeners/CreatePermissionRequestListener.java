@@ -1,6 +1,10 @@
-/**
+/*
+ * TurnServer, the OpenSource Java Solution for TURN protocol. Maintained by the
+ * Jitsi community (http://jitsi.org).
  * 
+ * Distributable under LGPL license. See terms of license at gnu.org.
  */
+
 package org.jitsi.turnserver.listeners;
 
 import java.util.logging.*;
@@ -86,10 +90,6 @@ public class CreatePermissionRequestListener
                 response =
                     MessageFactory
                         .createCreatePermissionErrorResponse(ErrorCodeAttribute.FORBIDDEN);
-            }
-            else
-            {
-                response = MessageFactory.createCreatePermissionResponse();
             }
             try
             {
