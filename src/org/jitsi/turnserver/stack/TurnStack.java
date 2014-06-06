@@ -7,8 +7,7 @@
 
 package org.jitsi.turnserver.stack;
 
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 import java.util.logging.*;
 
 import org.ice4j.*;

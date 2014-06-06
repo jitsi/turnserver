@@ -13,9 +13,7 @@ import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
-import org.jitsi.turnserver.stack.Allocation;
-import org.jitsi.turnserver.stack.FiveTuple;
-import org.jitsi.turnserver.stack.TurnStack;
+import org.jitsi.turnserver.stack.*;
 
 /**
  * The class that would be handling and responding to incoming Allocation

@@ -10,13 +10,10 @@ package org.jitsi.turnserver.collectors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.ice4j.ResponseCollector;
-import org.ice4j.StunResponseEvent;
-import org.ice4j.StunTimeoutEvent;
-import org.ice4j.attribute.Attribute;
-import org.ice4j.attribute.ErrorCodeAttribute;
-import org.ice4j.message.Message;
-import org.ice4j.stack.StunStack;
+import org.ice4j.*;
+import org.ice4j.attribute.*;
+import org.ice4j.message.*;
+import org.ice4j.stack.*;
 
 /**
  * The class that would be handling and responding to incoming CreatePermission

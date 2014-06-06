@@ -7,14 +7,11 @@
 
 package org.jitsi.turnserver.stack;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.logging.Logger;
+import java.net.*;
+import java.util.*;
+import java.util.logging.*;
 
-import org.ice4j.Transport;
-import org.ice4j.TransportAddress;
+import org.ice4j.*;
 
 /**
  * This class is an implementation of Allocations in TURN server.
