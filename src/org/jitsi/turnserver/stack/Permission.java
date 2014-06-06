@@ -26,12 +26,15 @@ public class Permission
      * The IP address of the peer for which to create Permission.
      */
     private TransportAddress ipAddress;
+ /**
+     * The time in milliseconds when the Permission will expire.
+     */
+    private long expirationTime = -1;
 
     /**
-     * Represents the current lifetime of the Permission will be decreased by
-     * the PermissionExpireThread.
+     * Determines whether or not the Permission has expired.
      */
-    private long lifetime = -1;
+    private boolean expired = false;
 
     /**
      * Default Constructor.
@@ -98,22 +101,99 @@ public class Permission
     }
 
     /**
-     * @return the current lifetime of the permission.
+     * Returns the lifetime associated with this Permission.
+     * If the Permission is expired it returns 0. 
      */
     public long getLifetime()
     {
-        return lifetime;
+        if(!isExpired())
+        {
+            return (this.expirationTime-System.currentTimeMillis());
+        }
+        else
+        {
+            return 0;
+        }
     }
-
+    
     /**
-     * @param lifetime of permission. It is calculated as minimumm of lifetime
-     *            and Permission.MAX_LIFETIME.
+     *  Sets the time to expire in milli-seconds for this Permission.
+     *  Max lifetime can be Permission.MAX_LIFEIME.
+     *  
+     *  @param lifetime the lifetime for this Permission.
      */
     public void setLifetime(long lifetime)
     {
-        this.lifetime = Math.min(lifetime, Permission.MAX_LIFETIME);
+        synchronized(this)
+        {
+            this.expirationTime = System.currentTimeMillis()
+                + Math.min(lifetime*1000, Permission.MAX_LIFETIME);
+        }
     }
 
+    /**
+     * Start the Permission. This launches the countdown to the moment the
+     * Permission would expire.
+     */
+    public synchronized void start()
+    {
+        synchronized(this)
+        {
+            if (expirationTime == -1)
+            {
+                expired = false;
+                expirationTime = MAX_LIFETIME + System.currentTimeMillis();
+            }
+            else
+            {
+                throw new IllegalStateException(
+                        "Permission has already been started!");
+            }
+        }
+    }
+    
+    /**
+     * Determines whether this <tt>Permission</tt> is expired now.
+     *
+     * @return <tt>true</tt> if this <tt>Permission</tT> is expired
+     * now; otherwise, <tt>false</tt>
+     */
+    public boolean isExpired()
+    {
+        return isExpired(System.currentTimeMillis());
+    }
+    
+    /**
+     * Expires the Permission. Once this method is called the Permission is
+     * considered terminated.
+     */
+    public synchronized void expire()
+    {
+        expired = true;
+        /*
+         * TurnStack has a background Thread running with the purpose of
+         * removing expired Permissions.
+         */
+    }
+    
+    /**
+     * Determines whether this <tt>Permission</tt> will be expired at
+     * a specific point in time.
+     *
+     * @param now the time in milliseconds at which the <tt>expired</tt> state
+     * of this <tt>Permission</tt> is to be returned
+     * @return <tt>true</tt> if this <tt>Permission</tt> will be
+     * expired at the specified point in time; otherwise, <tt>false</tt>
+     */
+    public synchronized boolean isExpired(long now)
+    {
+        if (expirationTime == -1)
+            return false;
+        else if (expirationTime < now)
+            return true;
+        else
+            return expired;
+    }
     /*
      * The permission is uniquely identified by its IP address, so hashCode is
      * calculated on the IP address only.
@@ -131,14 +211,6 @@ public class Permission
     @Override
     public boolean equals(Object obj)
     {
-        if (this == obj)
-        {
-            return true;
-        }
-        if (obj == null)
-        {
-            return false;
-        }
         if (!(obj instanceof Permission))
         {
             return false;
@@ -156,7 +228,7 @@ public class Permission
         {
             return false;
         }
-        if (lifetime != other.lifetime)
+        if (expirationTime != other.expirationTime)
         {
             return false;
         }
