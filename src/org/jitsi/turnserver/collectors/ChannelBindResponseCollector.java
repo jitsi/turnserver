@@ -40,7 +40,7 @@ public class ChannelBindResponseCollector
     /**
      * Creates a new ChannelBindresponseCollector
      * 
-     * @param stunStack
+     * @param turnStack
      */
     public ChannelBindResponseCollector(StunStack stunStack)
     {

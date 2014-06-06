@@ -44,7 +44,7 @@ public class ChannelBindRequestListener
     /**
      * Creates a new ChannelBindRequestListener
      * 
-     * @param stunStack
+     * @param turnStack
      */
     public ChannelBindRequestListener(StunStack stunStack)
     {

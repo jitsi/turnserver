@@ -40,7 +40,7 @@ public class CreatePermissionResponseCollector
     /**
      * Creates a new CreatePermissionResponseCollector
      * 
-     * @param stunStack
+     * @param turnStack
      */
     public CreatePermissionResponseCollector(StunStack stunStack)
     {

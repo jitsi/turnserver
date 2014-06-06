@@ -40,7 +40,7 @@ public class ConnectionBindResponseCollector
     /**
      * Creates a new ConnectionBindresponseCollector
      * 
-     * @param stunStack
+     * @param turnStack
      */
     public ConnectionBindResponseCollector(StunStack stunStack)
     {

@@ -34,7 +34,7 @@ public class AllocationResponseCollector
     /**
      * Creates a new AllocationresponseCollector
      * 
-     * @param stunStack
+     * @param turnStack
      */
     public AllocationResponseCollector(StunStack stunStack)
     {

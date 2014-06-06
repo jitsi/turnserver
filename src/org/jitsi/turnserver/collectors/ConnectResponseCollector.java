@@ -39,7 +39,7 @@ public class ConnectResponseCollector
     /**
      * Creates a new ConnectresponseCollector
      * 
-     * @param stunStack
+     * @param turnStack
      */
     public ConnectResponseCollector(StunStack stunStack)
     {

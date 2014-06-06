@@ -37,7 +37,7 @@ public class RefreshResponseCollector
     /**
      * Creates a new RefreshResponseCollector
      * 
-     * @param stunStack
+     * @param turnStack
      */
     public RefreshResponseCollector(StunStack stunStack)
     {

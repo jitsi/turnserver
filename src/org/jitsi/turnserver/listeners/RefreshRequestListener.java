@@ -41,7 +41,7 @@ public class RefreshRequestListener
     /**
      * Creates a new RefreshRequestListener
      * 
-     * @param stunStack
+     * @param turnStack
      */
     public RefreshRequestListener(StunStack stunStack)
     {
