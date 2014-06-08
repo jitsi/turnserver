@@ -7,8 +7,9 @@
 
 package org.jitsi.turnserver.stack;
 
-import org.ice4j.Transport;
-import org.ice4j.TransportAddress;
+import java.util.logging.Logger;
+
+import org.ice4j.*;
 
 /**
  * This class is an implementation of ChannelBind in TURN protocol.
@@ -19,7 +20,13 @@ import org.ice4j.TransportAddress;
 public class ChannelBind
 {
     /**
-     * The maximum lifetime allowed for a ChannelBind.
+     * Our class logger.
+     */
+    private static final Logger logger = Logger.getLogger(ChannelBind.class
+        .getName());
+    
+    /**
+     * The maximum lifetime allowed for a ChannelBind (10 min).
      */
     public static final long MAX_LIFETIME = 10 * 60 * 1000;
 
@@ -135,7 +142,7 @@ public class ChannelBind
     }
     
     /**
-     *  Sets the time to expire in milli-seconds for this ChannelBind.
+     *  Sets the time to expire in milliseconds for this ChannelBind.
      *  Max lifetime can be ChannelBind.MAX_LIFEIME.
      *  
      *  @param lifetime the lifetime for this ChannelBind.
@@ -149,6 +156,23 @@ public class ChannelBind
         }
     }
 
+    /**
+     * Refreshes the ChannelBind with the MAX_LIFETIME value.
+     */
+    public void refresh()
+    {
+        this.setLifetime(ChannelBind.MAX_LIFETIME);
+    }
+    
+    /**
+     * refreshes the ChannelBind with given lifetime value.
+     * @param lifetime the required lifetime of ChannelBind.
+     */
+    public void refresh(int lifetime)
+    {
+        this.setLifetime(lifetime);
+    }
+    
     /**
      * Start the ChannelBind. This launches the countdown to the moment the
      * ChannelBind would expire.
@@ -189,7 +213,7 @@ public class ChannelBind
     {
         expired = true;
         /*
-         * TurnStack has a background Thread running with the purpose of
+         * Allocation has a background Thread running with the purpose of
          * removing expired ChannelBinds.
          */
     }
@@ -234,6 +258,14 @@ public class ChannelBind
             return true;
         }
         return false;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ChannelBind ["
+            + (peerAddress != null ? "peerAddress=" + peerAddress + ", " : "")
+            + "channelNo=" + (int)channelNo + "]";
     }
     
 }
