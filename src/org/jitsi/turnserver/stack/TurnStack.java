@@ -7,12 +7,14 @@
 
 package org.jitsi.turnserver.stack;
 
+import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
+import org.ice4j.socket.*;
 import org.ice4j.stack.*;
 
 /**
@@ -33,11 +35,33 @@ public class TurnStack
         = Logger.getLogger(TurnStack.class.getName());
 
     /**
+     * The maximum no of Allocations per TurnStack.
+     */
+    public static final int MAX_ALLOCATIONS = 5;
+    
+    /**
+     * To track the portNo used.
+     */
+    private static int nextPortNo = 49152;
+    
+    /**
      * Represents the Allocations stored for Server Side.
      */
     private final HashMap<FiveTuple,Allocation> serverAllocations
         = new HashMap<FiveTuple,Allocation>();
 
+    /**
+     * Contains the mapping of relayAddress to Allocation.
+     */
+    private final HashMap<TransportAddress,Allocation> serverRelayAllocationMap
+        = new HashMap<TransportAddress,Allocation>();
+    
+    /**
+     * RelayAddress reserved by server.
+     */
+    private final HashSet<TransportAddress> reservedAddress
+        = new HashSet<TransportAddress>();
+    
     /**
      * Represents the Allocations stored for Client Side.
      */
@@ -50,6 +74,11 @@ public class TurnStack
      * .
      */
     private Thread serverAllocationExpireThread;
+    
+    /**
+     * Indicates that if the don't fragment is support or not.
+     */
+    private static final boolean dontFragmentSupported = false;
     
     /**
      * Default Constructor. Initialises the NetAccessManager and
@@ -69,11 +98,11 @@ public class TurnStack
     public void handleMessageEvent(StunMessageEvent ev)
     {
         Message msg = ev.getMessage();
-        System.out.println("Received an event");
+        logger.log(Level.FINEST,"Received an event");
 /*
         if (!TurnStack.isTurnMessage(msg))
             return; // oops not a Turn message.
-   */     logger.setLevel(Level.FINEST);
+*/      logger.setLevel(Level.FINEST);
         if (logger.isLoggable(Level.FINEST))
         {
             logger.finest("Received a message on " + ev.getLocalAddress()
@@ -84,8 +113,8 @@ public class TurnStack
         if (msg instanceof Request)
         {
             logger.finest("parsing request");
-
             TransactionID serverTid = ev.getTransactionID();
+            System.out.println("parsing request : "+serverTid);
             TurnServerTransaction sTran =
                 (TurnServerTransaction) getServerTransaction(serverTid);
 
@@ -203,6 +232,7 @@ public class TurnStack
         // response
         else if (msg instanceof Response)
         {
+            logger.finer("Parsing response");
             TransactionID tid = ev.getTransactionID();
             StunClientTransaction tran =
                 removeTransactionFromClientTransactions(tid);
@@ -221,15 +251,30 @@ public class TurnStack
         // indication
         else if (msg instanceof Indication)
         {
+            logger.finer("Dispatching a Indication.");
             fireMessageEventFormEventDispatcher(ev);
         }
     }
 
+    /**
+     * Function to validate request Attributes.
+     * @param ev the StunMessageEvent fired from request event.
+     */
     private void validateRequestAttributes(StunMessageEvent ev)
     {
         
     }
 
+    /**
+     * Method to know if the Don't fragment is supported.
+     * 
+     * @return true if supported else false.
+     */
+    public static boolean isDontfragmentsupported()
+    {
+        return dontFragmentSupported;
+    }
+    
     /**
      * Returns the Allocation with the specified <tt>fiveTuple</tt> or
      * <tt>null</tt> if no such Allocation exists.
@@ -238,7 +283,6 @@ public class TurnStack
      * 
      * @return the {@link Allocation} we are looking for.
      */
-
     public Allocation getServerAllocation(FiveTuple fiveTuple)
     {
         Allocation allocation = null;
@@ -281,7 +325,18 @@ public class TurnStack
             allocation = null;
         return allocation;
     }
-
+    
+    /**
+     * Determines if more allocations can be added to this TurnStack.
+     * 
+     * @return true if no of allocations are less than maximum allowed
+     *         allocations per TurnStack.
+     */
+    public boolean canHaveMoreAllocations()
+    {
+       return (this.serverAllocations.size() < MAX_ALLOCATIONS);
+    }
+    
     /**
      * Adds a new server allocation to this TurnStack.
      * 
@@ -292,16 +347,100 @@ public class TurnStack
         synchronized(this.serverAllocations)
         {
             this.serverAllocations.put(allocation.getFiveTuple(), allocation);
+            IceUdpSocketWrapper sock;
             if(allocation.isExpired())
             {   // check if meanwhile other thread has put the same allocation.
-                allocation.start();
+                try
+                {
+                    sock = new IceUdpSocketWrapper(
+                                new SafeCloseDatagramSocket(
+                                    allocation.getRelayAddress()));
+                    this.addSocket(sock);
+                    allocation.start();
+                }
+                catch (SocketException e)
+                {
+                    logger.log(Level.FINEST, 
+                            "Error! Cannot add new socket from TurnStack at "
+                                +"addNewServerAllocation ");
+                    logger.log(Level.FINEST, e.getMessage());
+                    allocation.expire();
+                }
             }
+            this.serverRelayAllocationMap.put(
+                        allocation.getRelayAddress(), 
+                        allocation);
             maybeStartServerAllocationExpireThread();
         }
     }
     
     /**
-     * Initialises and starts {@link #serverTransactionExpireThread} if
+     * Function to check if given IP is allowed for peer address.s
+     * @param peerAddr
+     * @return
+     */
+    public static boolean isIPAllowed(TransportAddress peerAddr)
+    {
+        String ip = peerAddr.getHostAddress();
+        int portNo = peerAddr.getPort();
+        //TODO : logic for validating the invalid IP address.
+        return true;
+    }
+    
+    /**
+     * Reserves a port for future use for Reservation-token.
+     * 
+     * @param reserAddr the address to be reserved.
+     * @return false if it is already reserved, else true.
+     */
+    public boolean reservePort(TransportAddress reserAddr)
+    {
+        if(this.reservedAddress.contains(reserAddr))
+        {
+            return false;
+        }
+        else
+        {
+            this.reservedAddress.add(reserAddr);
+            return true;
+        }
+    }
+    
+    /**
+     * Function to get new Relay address.
+     * TODO : It has to be replaced with jitsi api.
+     * 
+     * @param evenCompulsary
+     * @return
+     */
+    public TransportAddress getNewRelayAddress(boolean evenCompulsary)
+    {
+        InetAddress ipAddress = null;
+        try
+        {
+            ipAddress = InetAddress.getLocalHost();
+        }
+        catch (UnknownHostException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        TransportAddress possibleAddr =
+            new TransportAddress(ipAddress, nextPortNo++, Transport.UDP);
+        int diff = evenCompulsary ? 2 : 1;
+        nextPortNo += (evenCompulsary && (nextPortNo%2)==0) ? 0 : 1;
+        while(this.reservedAddress.contains(possibleAddr) && nextPortNo < 65535)
+        {
+            nextPortNo += diff;
+            possibleAddr =
+                new TransportAddress(ipAddress, nextPortNo++, Transport.UDP);
+            
+        }
+        return possibleAddr;
+    }
+    
+    /**
+     * Initialises and starts {@link #serverAllocationExpireThread} if
      * necessary.
      */
     public void maybeStartServerAllocationExpireThread()
