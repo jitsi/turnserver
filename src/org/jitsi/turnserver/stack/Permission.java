@@ -37,12 +37,15 @@ public class Permission
     private boolean expired = false;
 
     /**
-     * Default Constructor.
+     * @param ipAddress contains the peer IP address and transport protocol to
+     *            be assigned. The port value is ignored.
      */
-    public Permission()
+    public Permission(TransportAddress ipAddress)
     {
+        this.setIpAddress(ipAddress);
+        this.setLifetime(Permission.MAX_LIFETIME);
     }
-
+    
     /**
      * @param ipAddress contains the peer IP address and transport protocol to
      *            be assigned. The port value is ignored.
@@ -129,6 +132,23 @@ public class Permission
             this.expirationTime = System.currentTimeMillis()
                 + Math.min(lifetime*1000, Permission.MAX_LIFETIME);
         }
+    }
+    
+    /**
+     * Refreshes the permission with the MAX_LIFETIME value.
+     */
+    public void refresh()
+    {
+        this.setLifetime(Permission.MAX_LIFETIME);
+    }
+    
+    /**
+     * refreshes the permission with given lifetime value.
+     * @param lifetime the required lifetime of permission.
+     */
+    public void refresh(int lifetime)
+    {
+        this.setLifetime(lifetime);
     }
 
     /**
@@ -233,5 +253,12 @@ public class Permission
             return false;
         }
         return true;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "Permission ["
+            + (ipAddress != null ? "ipAddress=" + ipAddress : "") + "]";
     }
 }
