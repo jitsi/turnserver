@@ -62,14 +62,12 @@ public class AllocationRequestListener
     {
         if (logger.isLoggable(Level.FINER))
         {
-            logger.finer("Received request " + evt);
+            logger.setLevel(Level.FINEST);
         }
         Message message = evt.getMessage();
         if (message.getMessageType() == Message.ALLOCATE_REQUEST)
         {
-            logger.setLevel(Level.FINEST);
             logger.finest("Received a Allocation Request");
-            System.out.println("Received a Allocation Request");
             
             Response response = null;
             RequestedTransportAttribute requestedTransportAttribute =
@@ -86,6 +84,9 @@ public class AllocationRequestListener
 
             LifetimeAttribute lifetimeAttribute = 
                 (LifetimeAttribute) message.getAttribute(Attribute.LIFETIME);
+            
+            EvenPortAttribute evenPort = 
+                (EvenPortAttribute) message.getAttribute(Attribute.EVEN_PORT);
             
             if (lifetimeAttribute == null)
             {
@@ -105,13 +106,16 @@ public class AllocationRequestListener
                 new FiveTuple(clientAddress, serverAddress, transport);
               
             Character errorCode = null;
-            if (requestedTransportAttribute == null)
+            if(!this.turnStack.canHaveMoreAllocations())
+            {
+                errorCode = ErrorCodeAttribute.ALLOCATION_QUOTA_REACHED;
+            }
+            else if (requestedTransportAttribute == null)
             {
                 errorCode = ErrorCodeAttribute.BAD_REQUEST;
             }
             else if (requestedTransportAttribute.getRequestedTransport() != 17)
             {
-               System.out.println(requestedTransportAttribute.getRequestedTransport());
                 errorCode = ErrorCodeAttribute.UNSUPPORTED_TRANSPORT_PROTOCOL;
             }
             else if (reservationTokenAttribute != null
@@ -122,36 +126,88 @@ public class AllocationRequestListener
             
             if (turnStack.getServerAllocation(fiveTuple)!=null)
             {
-                errorCode = ErrorCodeAttribute.ALLOCATION_MISMATCH;
+                errorCode = ErrorCodeAttribute.ALLOCATION_MISMATCH; 
             }
             // do other checks here
             
             if (errorCode == null)
             {
-                // do the allocation with 5-tuple
-                TransportAddress relayAddress = Allocation.getNewRelayAddress();
+                if(evenPortAttribute==null)
+                {
+                    evenPortAttribute =
+                        AttributeFactory.createEvenPortAttribute(false);
+                }
+                TransportAddress relayAddress =
+                    turnStack.getNewRelayAddress(evenPortAttribute.isRFlag());
                 logger.finest("Added a new Relay Address "+relayAddress);
-                System.out.println("Added a new Relay Address "+relayAddress);
                 
                 Allocation allocation =
                     new Allocation(relayAddress, fiveTuple,
                         lifetimeAttribute.getLifetime());
                 this.turnStack.addNewServerAllocation(allocation);
                 logger.finest("Added a new Allocation");
-                System.out.println("Added a new Allocation");
                 
                 response = MessageFactory.createAllocationResponse(
                      (Request) message,
                      allocation.getFiveTuple().getClientTransportAddress(), 
                      allocation.getRelayAddress(), 
                      (int) allocation.getLifetime());
+                
+                XorRelayedAddressAttribute relayedXorAddress 
+                    = AttributeFactory.createXorRelayedAddressAttribute(
+                            allocation.getRelayAddress(),
+                            evt.getTransactionID().getBytes());
+                response.putAttribute(relayedXorAddress);
+                
+                LifetimeAttribute lifetime 
+                    = AttributeFactory.createLifetimeAttribute(
+                        (int)(allocation.getLifetime()));
+                response.putAttribute(lifetime);
+                
+                XorMappedAddressAttribute clientXorAddress 
+                    = AttributeFactory.createXorMappedAddressAttribute(
+                        clientAddress,
+                        evt.getTransactionID().getBytes());
+               response.putAttribute(clientXorAddress);
+                
+                if(evenPort!=null)
+                {
+                    // TODO : logic for process and creating Reservation Token.
+                    byte[] token = {7,7,7,7};
+                    ReservationTokenAttribute reservationToken
+                        = AttributeFactory.createReservationTokenAttribute(
+                            token);
+                    response.putAttribute(reservationToken);
+                    if(evenPort.isRFlag())
+                    {
+                        TransportAddress relayAddess
+                            = allocation.getRelayAddress();
+                        TransportAddress nextAddress 
+                            = new TransportAddress(
+                                relayAddress.getAddress(),
+                                relayAddress.getPort()+1,
+                                relayAddress.getTransport());
+                        boolean isReserved
+                            = this.turnStack.reservePort(nextAddress);
+                        if(isReserved)
+                        {
+                            logger.log(
+                                Level.FINEST,
+                                nextAddress+" reserved by "+fiveTuple);
+                        }
+                        else
+                        {
+                            logger.log(
+                                Level.FINEST,
+                                nextAddress+" not reserved by "+fiveTuple);
+                        }
+                    }
+                }               
             }
             else
             {
                 
                 logger.finest("Error Code " + errorCode
-                    + " on Allocation Request");
-                System.out.println("Error Code " + (int) errorCode
                     + " on Allocation Request");
                 response =
                     MessageFactory.createAllocationErrorResponse(errorCode);
