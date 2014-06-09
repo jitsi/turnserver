@@ -7,7 +7,6 @@
 
 package org.jitsi.turnserver.stack;
 
-import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 

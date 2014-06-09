@@ -58,7 +58,7 @@ public class ConnectionBindRequestListener
             logger.finer("Received request " + evt);
         }
         Message message = evt.getMessage();
-        if (message.getMessageType() == Message.ALLOCATE_REQUEST)
+        if (message.getMessageType() == Message.CONNECTION_BIND_REQUEST)
         {
             Response response = null;
             // processing logic
