@@ -13,6 +13,7 @@ import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
+import org.jitsi.turnserver.stack.*;
 
 /**
  * The class that would be handling and responding to incoming CreatePermission
@@ -30,7 +31,7 @@ public class CreatePermissionRequestListener
     private static final Logger logger = Logger
         .getLogger(CreatePermissionRequestListener.class.getName());
 
-    private final StunStack stunStack;
+    private final TurnStack turnStack;
 
     /**
      * The indicator which determines whether this
@@ -43,9 +44,16 @@ public class CreatePermissionRequestListener
      * 
      * @param turnStack
      */
-    public CreatePermissionRequestListener(StunStack stunStack)
+    public CreatePermissionRequestListener(StunStack turnStack)
     {
-        this.stunStack = stunStack;
+        if (turnStack instanceof TurnStack)
+        {
+            this.turnStack = (TurnStack) turnStack;
+        }
+        else
+        {
+            throw new IllegalArgumentException("This is not a TurnStack!");
+        }
     }
 
     /*
@@ -61,39 +69,89 @@ public class CreatePermissionRequestListener
     {
         if (logger.isLoggable(Level.FINER))
         {
-            logger.finer("Received request " + evt);
+            logger.setLevel(Level.FINEST);
+            logger.finer("Received create permission request " + evt);
         }
         Message message = evt.getMessage();
         if (message.getMessageType() == Message.CREATEPERMISSION_REQUEST)
         {
+            System.out.println("Received create permission request ");
+            System.out.println("Event tran : "+evt.getTransactionID());
+            
             XorPeerAddressAttribute xorPeerAddressAttribute =
                 (XorPeerAddressAttribute) message
                     .getAttribute(Attribute.XOR_PEER_ADDRESS);
-            // we should get multiple xor peer address attributes here
+            if(xorPeerAddressAttribute!=null)
+            {
+                xorPeerAddressAttribute.setAddress(
+                    xorPeerAddressAttribute.getAddress(), 
+                    evt.getTransactionID().getBytes());
+            }
+            // we should get multiple xor peer address attributes here.
+            LifetimeAttribute lifetimeAttribute = 
+                (LifetimeAttribute) message.getAttribute(Attribute.LIFETIME);
+            
             Response response = null;
-            boolean inSufficientCapacity = true;
-            boolean peerAddressAllowed = true;
-            if (xorPeerAddressAttribute == null)
+            TransportAddress clientAddress = evt.getRemoteAddress();
+            TransportAddress serverAddress = evt.getLocalAddress();
+            Transport transport = Transport.UDP;
+            FiveTuple fiveTuple =
+                new FiveTuple(clientAddress, serverAddress, transport);
+            
+            Allocation allocation 
+                = this.turnStack.getServerAllocation(fiveTuple);
+            
+            Character errorCode = null;
+            if (xorPeerAddressAttribute == null || allocation==null)
             {
-                response =
-                    MessageFactory
-                        .createCreatePermissionErrorResponse(ErrorCodeAttribute.BAD_REQUEST);
+                errorCode = ErrorCodeAttribute.BAD_REQUEST;
             }
-            else if (inSufficientCapacity)
+            else if (!TurnStack.isIPAllowed(
+                        xorPeerAddressAttribute.getAddress()))
             {
-                response =
-                    MessageFactory
-                        .createCreatePermissionErrorResponse(ErrorCodeAttribute.INSUFFICIENT_CAPACITY);
+                System.out.println("Peer Address requested " 
+                        + xorPeerAddressAttribute.getAddress()
+                        +" "+TurnStack.isIPAllowed(
+                            xorPeerAddressAttribute.getAddress()));
+                errorCode = ErrorCodeAttribute.FORBIDDEN;
             }
-            else if (peerAddressAllowed)
+            else if (!allocation.canHaveMorePermisions())
             {
-                response =
-                    MessageFactory
-                        .createCreatePermissionErrorResponse(ErrorCodeAttribute.FORBIDDEN);
+                errorCode = ErrorCodeAttribute.INSUFFICIENT_CAPACITY;
+            }
+            if(errorCode!=null)
+            {
+                System.out.println("Creating error response : "+(int)errorCode);
+                response = MessageFactory.createCreatePermissionErrorResponse(
+                                errorCode);
+            }
+            else
+            {   
+                System.out.println("Creating success response.");
+                TransportAddress peerAddress 
+                    = xorPeerAddressAttribute.getAddress();
+                Permission permission = null;
+                if(lifetimeAttribute!=null)
+                {
+                     permission = new Permission(peerAddress,
+                                         lifetimeAttribute.getLifetime());
+                }
+                else
+                {
+                    permission = new Permission(peerAddress);
+                }
+                
+                System.out.println("Peer Address requested " 
+                    + xorPeerAddressAttribute.getAddress()
+                    +" "+TurnStack.isIPAllowed(
+                        xorPeerAddressAttribute.getAddress()));
+                allocation.addNewPermission(permission);
+                System.out.println("Added permission to allocation.");
+                response = MessageFactory.createPermissionResponse();
             }
             try
             {
-                stunStack.sendResponse(evt.getTransactionID().getBytes(),
+                turnStack.sendResponse(evt.getTransactionID().getBytes(),
                     response, evt.getLocalAddress(), evt.getRemoteAddress());
             }
             catch (Exception e)
@@ -118,7 +176,7 @@ public class CreatePermissionRequestListener
     {
         if (!started)
         {
-            stunStack.addRequestListener(this);
+            turnStack.addRequestListener(this);
             started = true;
         }
     }
@@ -130,7 +188,7 @@ public class CreatePermissionRequestListener
      */
     public void stop()
     {
-        stunStack.removeRequestListener(this);
+        turnStack.removeRequestListener(this);
         started = false;
     }
 
