@@ -13,6 +13,7 @@ import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
+import org.jitsi.turnserver.stack.*;
 
 /**
  * The class that would be handling and responding to incoming Refresh requests
@@ -30,7 +31,7 @@ public class RefreshRequestListener
     private static final Logger logger = Logger
         .getLogger(RefreshRequestListener.class.getName());
 
-    private final StunStack stunStack;
+    private final TurnStack turnStack;
 
     /**
      * The indicator which determines whether this
@@ -43,9 +44,16 @@ public class RefreshRequestListener
      * 
      * @param turnStack
      */
-    public RefreshRequestListener(StunStack stunStack)
+    public RefreshRequestListener(StunStack turnStack)
     {
-        this.stunStack = stunStack;
+        if (turnStack instanceof TurnStack)
+        {
+            this.turnStack = (TurnStack) turnStack;
+        }
+        else
+        {
+            throw new IllegalArgumentException("This is not a TurnStack!");
+        }
     }
 
     /**
@@ -62,39 +70,49 @@ public class RefreshRequestListener
             logger.finer("Received request " + evt);
         }
         Message message = evt.getMessage();
-        if (message.getMessageType() == Message.REFRESH_REQUEST)
+        if (message.getMessageType() == Message.ALLOCATE_REFRESH_REQUEST)
         {
+            if (logger.isLoggable(Level.FINER))
+            {
+                logger.setLevel(Level.FINEST);
+                logger.finer("Received refresh request " + evt);
+            }
+
             LifetimeAttribute lifetimeAttribute =
                 (LifetimeAttribute) message.getAttribute(Attribute.LIFETIME);
-            int desiredLifetime = 0;
-            /*
-             * desiredLifetime = Math.min(lifetimeAttribute.getLifetime(),
-             * stunstack.DEFAULT_LIFETIME);
-             */
+            
             Response response = null;
-            boolean allocationFound = false;
-            if (allocationFound)
+            TransportAddress clientAddress = evt.getRemoteAddress();
+            TransportAddress serverAddress = evt.getLocalAddress();
+            Transport transport = Transport.UDP;
+            FiveTuple fiveTuple =
+                new FiveTuple(clientAddress, serverAddress, transport);
+            
+            Allocation allocation =
+                this.turnStack.getServerAllocation(fiveTuple);
+            if (allocation != null)
             {
-                if (desiredLifetime == 0)
+                if (lifetimeAttribute != null)
                 {
-                    // delete allocation
+                    allocation.refresh(lifetimeAttribute.getLifetime());
+                    response = MessageFactory.createRefreshResponse(
+                            (int) allocation.getLifetime());
                 }
                 else
                 {
-                    // update allocation's time-to-expire
+                    allocation.refresh();
+                    response = MessageFactory.createRefreshResponse(
+                            (int) allocation.getLifetime());
                 }
-                response =
-                    MessageFactory.createRefreshResponse(desiredLifetime);
             }
             else
             {
-                response =
-                    MessageFactory
-                        .createRefreshErrorResponse(ErrorCodeAttribute.ALLOCATION_MISMATCH);
+                response = MessageFactory.createRefreshErrorResponse(
+                            ErrorCodeAttribute.ALLOCATION_MISMATCH);
             }
             try
             {
-                stunStack.sendResponse(evt.getTransactionID().getBytes(),
+                turnStack.sendResponse(evt.getTransactionID().getBytes(),
                     response, evt.getLocalAddress(), evt.getRemoteAddress());
             }
             catch (Exception e)
@@ -120,7 +138,7 @@ public class RefreshRequestListener
     {
         if (!started)
         {
-            stunStack.addRequestListener(this);
+            turnStack.addRequestListener(this);
             started = true;
         }
     }
@@ -132,7 +150,7 @@ public class RefreshRequestListener
      */
     public void stop()
     {
-        stunStack.removeRequestListener(this);
+        turnStack.removeRequestListener(this);
         started = false;
     }
 }
