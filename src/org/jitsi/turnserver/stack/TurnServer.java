@@ -34,10 +34,21 @@ public class TurnServer
 
     private IceUdpSocketWrapper sock;
 
+    private final ServerPeerUdpEventHandler peerUdpHandler;
+    
+    private final ServerChannelDataEventHandler channelDataHandler;
+    
     public TurnServer(TransportAddress localUDPAddress)
     {
         this.localAddress = localUDPAddress;
-        turnStack = new TurnStack();
+        this.peerUdpHandler = new ServerPeerUdpEventHandler();
+        this.channelDataHandler = new ServerChannelDataEventHandler();
+        
+        turnStack = new TurnStack(this.peerUdpHandler,this.channelDataHandler);
+        
+        this.peerUdpHandler.setTurnStack(turnStack);
+        this.channelDataHandler.setTurnStack(turnStack);
+        
         logger.info("Server initialized Waiting to be started");
     }
 
@@ -117,12 +128,18 @@ public class TurnServer
         RefreshRequestListener refreshRequestListener = 
             new RefreshRequestListener(turnStack);
         
+        SendIndicationListener sendIndListener = 
+        	new SendIndicationListener(turnStack);
+        sendIndListener.setLocalAddress(localAddress);
+        
         allocationRequestListner.start();
         channelBindRequestListener.start();
         connectionBindRequestListener.start();
         connectRequestListener.start();
         createPermissionRequestListener.start();
         refreshRequestListener.start();
+        
+        sendIndListener.start();
         
         turnStack.addSocket(sock);
         started = true;
