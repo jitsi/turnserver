@@ -141,11 +141,16 @@ public class AllocationRequestListener
                     turnStack.getNewRelayAddress(evenPortAttribute.isRFlag());
                 logger.finest("Added a new Relay Address "+relayAddress);
                 
-                Allocation allocation =
-                    new Allocation(relayAddress, fiveTuple,
-                        lifetimeAttribute.getLifetime());
-                this.turnStack.addNewServerAllocation(allocation);
-                logger.finest("Added a new Allocation");
+                Allocation allocation = null;
+                synchronized(this)
+                {
+                    allocation =
+                        new Allocation(relayAddress, fiveTuple,
+                            lifetimeAttribute.getLifetime());
+                    this.turnStack.addNewServerAllocation(allocation);
+                }
+                logger.finest("Added a new Allocation with relay address :"
+				+ allocation.getRelayAddress());
                 
                 response = MessageFactory.createAllocationResponse(
                      (Request) message,
