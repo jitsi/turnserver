@@ -189,6 +189,24 @@ public class Allocation
     }
 
     /**
+     * Returns the clientAddress associated with this Allocation.
+     * The client address who instianted this allocation.
+     */
+    public TransportAddress getClientAddress()
+    {
+        return this.getFiveTuple().getClientTransportAddress();
+    }    
+    
+    /**
+     * Returns the serverAddress associated with this Allocation.
+     * The serverAddress on which this allocation request is received.
+     */
+    public TransportAddress getServerAddress()
+    {
+        return this.getFiveTuple().getServerTransportAddress();
+    }
+    
+    /**
      * Returns the lifetime associated with this Allocation. If the allocation
      * is expired it returns 0.
      */
@@ -257,7 +275,7 @@ public class Allocation
             }
         }
     }
-
+    
     /**
      * Determines whether this <tt>Allocation</tt> is expired now.
      * 
@@ -435,12 +453,16 @@ public class Allocation
         return channelBind;
     }
 
+    /**
+     * Checks if the Permission is installed for the peerAddress. The port value
+     * is ignored.
+     * 
+     * @param peerAddress
+     *            the peerAddress for which to check permission.
+     * @return true if permission is installed for peerAddress else false.
+     */
     public boolean isPermitted(TransportAddress peerAddress)
     {
-        if (channelBindings.containsValue(peerAddress))
-        {
-            return true;
-        }
         peerAddress =
             new TransportAddress(peerAddress.getAddress(), 0,
                 peerAddress.getTransport());
@@ -450,7 +472,53 @@ public class Allocation
         }
         return false;
     }
+    
+    /**
+     * Checks if the specified channel no is binded to this allocation.
+     * 
+     * @param channelNo
+     *            the channel number to check.
+     * @return true if the specified channel no. is installed for this
+     *         allocation.
+     */
+    public boolean containsChannel(char channelNo)
+    {
+	return this.channelBindings.containsKey(channelNo);
+    }
 
+    /**
+     * Gets the channelNO for the specified peerAddress.
+     * @param peerAddress the peerAddress for which to get the channel.
+     * @return channelNo is channelNo is found, else 0x1000.
+     */
+    public char getChannel(TransportAddress peerAddress)
+    {
+	char val = 0x1000;
+	if(this.peerToChannelMap.containsKey(peerAddress))
+	{
+	    return this.peerToChannelMap.get(peerAddress);
+	}
+	return val;
+    }
+    
+    /**
+     * Gets the peerAddress associated with specified channelNo.
+     * 
+     * @param channelNo
+     *            the channel no for which to get the peerAddress.
+     * @return peerAddress the peerAddress associated with the channelNo in this
+     *         allocation.
+     */
+    public TransportAddress getPeerAddr(char channelNo)
+    {
+	ChannelBind cb = this.channelBindings.get(channelNo);
+	if(cb!=null)
+	{
+	    return cb.getPeerAddress();
+	}
+	return null;
+    }
+    
     /**
      * Determines if more permissions can be added to this allocation.
      * 
