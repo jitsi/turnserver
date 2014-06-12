@@ -42,7 +42,8 @@ public class TurnStack
     /**
      * To track the portNo used.
      */
-    private static int nextPortNo = 49152;
+//    private static int nextPortNo = 49152;
+    private static int nextPortNo = 15000;
     
     /**
      * Represents the Allocations stored for Server Side.
@@ -89,6 +90,19 @@ public class TurnStack
     }
 
     /**
+     * Parametrized constructor for TurnStack.
+     * 
+     * @param peerUdpMessageEventHandler
+     *            the PeerUdpMessageEventHandler for this turnStack.
+     * @param channelDataEventHandler
+     *            the ChannelDataEventHandler for this turnStack.
+     */
+    public TurnStack(PeerUdpMessageEventHandler peerUdpMessageEventHandler,
+	        ChannelDataEventHandler channelDataEventHandler) {
+	super(peerUdpMessageEventHandler,channelDataEventHandler);
+    }
+
+    /**
      * Called to notify this provider for an incoming message. method overridden
      * to modify the logic of the Turn Stack.
      * 
@@ -112,9 +126,8 @@ public class TurnStack
         // request
         if (msg instanceof Request)
         {
-            logger.finest("parsing request");
             TransactionID serverTid = ev.getTransactionID();
-            System.out.println("parsing request : "+serverTid);
+            logger.finer("parsing request : "+serverTid);
             TurnServerTransaction sTran =
                 (TurnServerTransaction) getServerTransaction(serverTid);
 
@@ -342,29 +355,40 @@ public class TurnStack
      * 
      * @param allocation the allocation to be added to this TurnStack.
      */
-    public void addNewServerAllocation(Allocation allocation)
+    public synchronized void addNewServerAllocation(Allocation allocation)
     {
         synchronized(this.serverAllocations)
         {
             this.serverAllocations.put(allocation.getFiveTuple(), allocation);
             IceUdpSocketWrapper sock;
-            if(allocation.isExpired())
+            if(true)
             {   // check if meanwhile other thread has put the same allocation.
                 try
                 {
+		    logger.finer("Adding a new Socket for : "
+			    + allocation.getRelayAddress());
                     sock = new IceUdpSocketWrapper(
                                 new SafeCloseDatagramSocket(
                                     allocation.getRelayAddress()));
                     this.addSocket(sock);
-                    allocation.start();
+		    logger.finer("Added a new Socket for : "
+			    + allocation.getRelayAddress());
+		    try
+		    {
+			allocation.start();
+		    }
+		    catch(Exception e)
+		    {
+		    }
                 }
                 catch (SocketException e)
                 {
+                    logger.finer("Error obtained : "+e.getMessage());
                     logger.log(Level.FINEST, 
                             "Error! Cannot add new socket from TurnStack at "
                                 +"addNewServerAllocation ");
                     logger.log(Level.FINEST, e.getMessage());
-                    allocation.expire();
+             //       allocation.expire();
                 }
             }
             this.serverRelayAllocationMap.put(
@@ -372,6 +396,16 @@ public class TurnStack
                         allocation);
             maybeStartServerAllocationExpireThread();
         }
+    }
+    
+    /**
+     * Gets the allocation corresponding to the relay address.
+     * @param relayAddress the relayAddress for which to find allocation.
+     * @return the Allocation corresponding to relayAddress.
+     */
+    public Allocation getServerAllocation(TransportAddress relayAddress)
+    {
+	return this.serverRelayAllocationMap.get(relayAddress);
     }
     
     /**
@@ -434,7 +468,6 @@ public class TurnStack
             nextPortNo += diff;
             possibleAddr =
                 new TransportAddress(ipAddress, nextPortNo++, Transport.UDP);
-            
         }
         return possibleAddr;
     }
@@ -540,7 +573,7 @@ public class TurnStack
                             }
                             else if (allocation.isExpired(now))
                             {
-                                System.out.println("allocation "+allocation+" expired");
+                                logger.finer("allocation "+allocation+" expired");
                                 i.remove();
                                 allocation.expire();
                             }
