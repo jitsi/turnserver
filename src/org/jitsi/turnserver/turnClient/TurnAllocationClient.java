@@ -15,7 +15,8 @@ import org.ice4j.socket.*;
 import org.ice4j.stack.*;
 import org.ice4j.stunclient.*;
 
-import org.jitsi.turnserver.stack.TurnStack;
+import org.jitsi.turnserver.listeners.*;
+import org.jitsi.turnserver.stack.*;
 
 /**
  * Class to run Allocation Client.
@@ -27,17 +28,31 @@ public class TurnAllocationClient
 {
     private static BlockingRequestSender requestSender;
     private static IceUdpSocketWrapper sock;
-    private static TurnStack stunStack;
+    private static TurnStack turnStack;
     private static TransportAddress localAddress;
     private static TransportAddress serverAddress;
     private static boolean started;
+    
+    /**
+     * The instance that should be notified when an incoming UDP message has
+     * been processed and ready for delivery
+     */
+    private PeerUdpMessageEventHandler peerUdpMessageEventHandler;
+
+    /**
+     * The instance that should be notified when an incoming ChannelData message
+     * has been processed and ready for delivery
+     */
+    private ChannelDataEventHandler channelDataEventHandler;
 
     /**
      * @param args
      * @throws IOException 
      * @throws StunException 
+     * @throws InterruptedException 
      */
-    public static void main(String[] args) throws IOException, StunException
+    public static void main(String[] args) throws IOException, StunException,
+	    InterruptedException
     {
         String[] temp = {InetAddress.getLocalHost().toString(),"3478"};
         args = temp;
@@ -56,11 +71,16 @@ public class TurnAllocationClient
         evt = sendAllocationRequest(localAddress,serverAddress);
         evt = sendCreatePermissionRequest(9999);
         evt = sendCreatePermissionRequest(9999);
-        evt = sendCreatePermissionRequest(10000);
+        evt = sendCreatePermissionRequest(11000);
         
         TransportAddress peerAddr 
             = new TransportAddress(InetAddress.getLocalHost(), 11000, protocol);
-        evt = sendChannelBindRequest((char) 0x4000,peerAddr);
+        
+        //evt = sendChannelBindRequest((char) 0x4000,peerAddr);
+        //sendChannelDataMessage();
+        doInteractiveComm();
+//        Thread.sleep(600*1000);
+        
         shutDown();
     }
 
@@ -203,6 +223,17 @@ public class TurnAllocationClient
         return evt;
     }
     
+    public static void sendChannelDataMessage() throws StunException,
+	    IOException
+    {
+	byte[] message = {0xa,0xb};
+	ChannelData channelData = new ChannelData();
+	channelData.setChannelNumber((char)0x4000);
+	channelData.setData(message);
+	turnStack.sendChannelData(channelData, serverAddress, localAddress);
+	System.out.println("ChannelData message sent.");
+    }
+    
     /**
      * Puts the discoverer into an operational state.
      * @throws IOException if we fail to bind.
@@ -211,17 +242,41 @@ public class TurnAllocationClient
     public static void start()
         throws IOException, StunException
     {
-        stunStack = new TurnStack();
+	ClientChannelDataEventHandler channelDataHandler 
+		= new ClientChannelDataEventHandler();
+	turnStack = new TurnStack(null, channelDataHandler);
+        channelDataHandler.setTurnStack(turnStack);
         sock = new IceUdpSocketWrapper(
             new SafeCloseDatagramSocket(localAddress));
+        turnStack.addSocket(sock);
 
-        stunStack.addSocket(sock);
-
-        requestSender = new BlockingRequestSender(stunStack, localAddress);
+        DataIndicationListener dataIndListener = 
+        	new DataIndicationListener(turnStack);
+        dataIndListener.setLocalAddress(localAddress);
+        dataIndListener.start();
+        
+        requestSender = new BlockingRequestSender(turnStack, localAddress);
 
         started = true;
     }
     
+    
+    public static void doInteractiveComm() throws IOException, StunException
+    {
+	BufferedReader br 
+		= new BufferedReader(new InputStreamReader(System.in));
+	String line = null;
+	while((line=br.readLine())!=null)
+	{
+	    byte[] data = line.getBytes("UTF-8");
+	    TransactionID tran = TransactionID.createNewTransactionID();
+	    TransportAddress peerAddress = new TransportAddress(
+		    InetAddress.getLocalHost(), 11000, Transport.UDP);
+	    Indication ind = MessageFactory.createSendIndication(peerAddress,
+		    data, tran.getBytes());
+	    turnStack.sendIndication(ind, serverAddress, localAddress);
+	}
+    }
 
     /**
      * Shuts down the underlying stack and prepares the object for garbage
@@ -229,7 +284,7 @@ public class TurnAllocationClient
      */
     public static void shutDown()
     {
-        stunStack.removeSocket(localAddress);
+        turnStack.removeSocket(localAddress);
         sock.close();
         sock = null;
 
