@@ -147,7 +147,7 @@ public class CreatePermissionRequestListener
                         xorPeerAddressAttribute.getAddress()));
                 allocation.addNewPermission(permission);
                 System.out.println("Added permission to allocation.");
-                response = MessageFactory.createPermissionResponse();
+                response = MessageFactory.createCreatePermissionResponse();
             }
             try
             {
