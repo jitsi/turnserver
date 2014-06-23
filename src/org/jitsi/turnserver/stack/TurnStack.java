@@ -7,15 +7,18 @@
 
 package org.jitsi.turnserver.stack;
 
+import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 
 import org.ice4j.*;
-import org.ice4j.attribute.*;
 import org.ice4j.message.*;
+import org.ice4j.security.*;
 import org.ice4j.socket.*;
 import org.ice4j.stack.*;
+
+import org.jitsi.turnserver.*;
 
 /**
  * The entry point to the TurnServer stack. The class is used to start, stop and
@@ -75,22 +78,23 @@ public class TurnStack
      * .
      */
     private Thread serverAllocationExpireThread;
-    
+        
     /**
      * Indicates that if the don't fragment is support or not.
      */
     private static final boolean dontFragmentSupported = false;
     
     /**
-     * Default Constructor. Initialises the NetAccessManager and
+     * Default Constructor. Initializes the NetAccessManager and
      */
     public TurnStack()
     {
         super();
+        initCredentials();
     }
 
     /**
-     * Parametrized constructor for TurnStack.
+     * Parameterized constructor for TurnStack.
      * 
      * @param peerUdpMessageEventHandler
      *            the PeerUdpMessageEventHandler for this turnStack.
@@ -100,6 +104,7 @@ public class TurnStack
     public TurnStack(PeerUdpMessageEventHandler peerUdpMessageEventHandler,
 	        ChannelDataEventHandler channelDataEventHandler) {
 	super(peerUdpMessageEventHandler,channelDataEventHandler);
+        initCredentials();
     }
 
     /**
@@ -112,11 +117,19 @@ public class TurnStack
     public void handleMessageEvent(StunMessageEvent ev)
     {
         Message msg = ev.getMessage();
-        logger.log(Level.FINEST,"Received an event");
-/*
+       
         if (!TurnStack.isTurnMessage(msg))
-            return; // oops not a Turn message.
-*/      logger.setLevel(Level.FINEST);
+        {
+            logger.finest("Ignored a non-TURN message!");
+            return;
+        }
+        else
+        {
+            super.handleMessageEvent(ev);
+            return;
+        }
+        
+/*      logger.setLevel(Level.FINEST);
         if (logger.isLoggable(Level.FINEST))
         {
             logger.finest("Received a message on " + ev.getLocalAddress()
@@ -183,7 +196,7 @@ public class TurnStack
             // validate attributes that need validation.
             try
             {
-                validateRequestAttributes(ev);
+//                validateRequestAttributes(ev);
             }
             catch (Exception exc)
             {
@@ -267,17 +280,9 @@ public class TurnStack
             logger.finer("Dispatching a Indication.");
             fireMessageEventFormEventDispatcher(ev);
         }
-    }
-
-    /**
-     * Function to validate request Attributes.
-     * @param ev the StunMessageEvent fired from request event.
-     */
-    private void validateRequestAttributes(StunMessageEvent ev)
-    {
-        
-    }
-
+*/    }
+    
+    
     /**
      * Method to know if the Don't fragment is supported.
      * 
@@ -610,6 +615,8 @@ public class TurnStack
     {
         char method = message.getMessageType();
         method = (char) (method & 0xfeef); // ignore the class
+	logger.finest("method extracted from "
+		+ (int) message.getMessageType() + " is : " + (int) method);
         boolean isTurnMessage = false;
         switch (method)
         {
@@ -625,11 +632,49 @@ public class TurnStack
         case Message.TURN_METHOD_CONNECTION_BIND:
         case Message.TURN_METHOD_CONNECTION_ATTEMPT:
             isTurnMessage = true;
+            break;
         default:
             isTurnMessage = false;
         }
         return isTurnMessage;
 
+    }
+    
+    
+    /**
+     * Initializes the turnstack with the registered users with username and their
+     * corresponding key.
+     */
+    public void initCredentials()
+    {
+	String fileName = TurnStackProperties.DEFAULT_ACCOUNTS_FILE;
+	FileReader fr;
+	try {
+	    fr = new FileReader(fileName);
+	    BufferedReader br = new BufferedReader(fr);
+	    CredentialsManager cm = this.getCredentialsManager();
+	    String line = null;
+	    while((line = br.readLine())!=null)
+	    {
+		String[] tok = line.split(":");
+		LongTermCredential ltc = new LongTermCredential(
+			tok[0].getBytes("UTF-8"), tok[1].getBytes("UTF-8"));
+		System.out.println("Adding - " + new String(ltc.getUsername())
+			+ ":" + new String(ltc.getPassword()));
+		// TODO replace with REALM instead of DEFAULT_REALM.
+		LongTermCredentialSession ltcs = new LongTermCredentialSession(
+			ltc,
+			TurnStackProperties.DEFAULT_REALM.getBytes("UTF-8"));
+		cm.registerAuthority(ltcs);
+	    }
+	    fr.close();
+	    br.close();
+	} catch (FileNotFoundException fnfe) {
+	    logger.finest("File not found.");
+	}catch(IOException ioe){
+	    logger.finest("Unable to read file.");
+	}
+	
     }
 
 }
