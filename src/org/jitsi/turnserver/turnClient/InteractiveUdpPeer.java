@@ -21,13 +21,20 @@ public class InteractiveUdpPeer {
     
     private static DatagramSocket sock;
     
+    private static int serverPort = 15000;
+//    private static int serverPort = 49152;
+    
+    private static int clientPort = 11000;
     /**
      * @param args
      * @throws IOException 
      */
     public static void main(String[] args) throws IOException {
-	String[] temp = {InetAddress.getLocalHost().toString(),"11000"};
-	args = temp;
+	String[] temp = {InetAddress.getLocalHost().toString(),""+clientPort};
+	if(args.length == 0)
+	{
+	    args = temp;
+	}
 	TransportAddress serverAddr = null;
 	TransportAddress clientAddr = null;
 	if(args.length==2)
@@ -37,12 +44,21 @@ public class InteractiveUdpPeer {
 	    clientAddr = new TransportAddress(InetAddress.getLocalHost(),
 		    12000,Transport.UDP);
 	}
+	else if(args.length==4)
+	{
+	    serverAddr = new TransportAddress(args[0],
+		    Integer.parseInt(args[1]),Transport.UDP);
+	    serverPort = Integer.parseInt(args[1]);
+	    clientAddr = new TransportAddress(args[2],
+		    Integer.parseInt(args[3]), Transport.UDP);
+	    clientPort = Integer.parseInt(args[3]);
+	}
 	else
 	{
 	    throw new IllegalArgumentException("Please enter valid arguments.");
 	}
 
-	sock = new DatagramSocket(11000,InetAddress.getLocalHost());
+	sock = new DatagramSocket(clientPort,InetAddress.getLocalHost());
 	/*
 	Thread recThread = getRecThread();
 	recThread.start();
@@ -56,9 +72,9 @@ public class InteractiveUdpPeer {
 	System.out.println("Start typing message.");
 	while((line = br.readLine())!=null)
 	{
-	    byte[] data = line.getBytes("UTF-8");
+	    byte[] data = line.getBytes();
 	    DatagramPacket pkt = new DatagramPacket(data, data.length,
-    		InetAddress.getLocalHost(), 15000);
+    		InetAddress.getLocalHost(), serverPort);
 	    sock.send(pkt);
 	    System.out.println("Sent : "+line);
 	    
