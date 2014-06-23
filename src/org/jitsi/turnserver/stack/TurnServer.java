@@ -13,9 +13,10 @@ import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.socket.*;
-import org.ice4j.stunclient.*;
+import org.ice4j.stunclient.StunDiscoveryReport;
 import org.jitsi.turnserver.*;
 import org.jitsi.turnserver.listeners.*;
+import org.jitsi.turnserver.turnClient.*;
 
 /**
  * The class to run a Turn server.
@@ -45,7 +46,7 @@ public class TurnServer
         this.channelDataHandler = new ServerChannelDataEventHandler();
         
         turnStack = new TurnStack(this.peerUdpHandler,this.channelDataHandler);
-        
+        System.out.println("Setting turnstack.");
         this.peerUdpHandler.setTurnStack(turnStack);
         this.channelDataHandler.setTurnStack(turnStack);
         
