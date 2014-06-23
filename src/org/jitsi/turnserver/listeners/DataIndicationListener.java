@@ -1,3 +1,10 @@
+/*
+ * TurnServer, the OpenSource Java Solution for TURN protocol. Maintained by the
+ * Jitsi community (http://jitsi.org).
+ * 
+ * Distributable under LGPL license. See terms of license at gnu.org.
+ */
+
 package org.jitsi.turnserver.listeners;
 
 import java.io.*;
@@ -51,9 +58,10 @@ public class DataIndicationListener extends IndicationListener {
 	    TransportAddress peerAddr = xorPeerAddress.getAddress();
 	    try {
 		String line = new String(data.getData(), "UTF-8");
-		System.out.println("Received a Data indiction from " + peerAddr
+		System.out.println(line);
+/*		System.out.println("Received a Data indiction from " + peerAddr
 			+ ", message : " + line);
-	    } catch (UnsupportedEncodingException e) {
+*/	    } catch (UnsupportedEncodingException e) {
 		System.err.println("Unable to convert to String!");
 	    }
 	}
