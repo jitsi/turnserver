@@ -4,6 +4,7 @@
 	<property name="dest" value="classes"/>
 	<property name="lib" value="lib"/>
 	<property name="src" value="src"/>
+    <property name="cmd.args" value="0.0.0.0 3487"/>
 	<property name="turnserver.jar" value="turnserver.jar"/>
 	<property name="doc" value="doc"/>
 	<property name="java.doc" value="${doc}/api"/>
@@ -106,11 +107,11 @@
 		<java fork="true"
 			classname="org.jitsi.turnserver.stack.TurnServer"
 		    classpathref="project.class.path">
-
+            <arg line="cmd.args" />
 			<!-- Tell java.util.logging about our logging preferences -->
-<!--			<sysproperty key="java.util.logging.config.file"
+			<sysproperty key="java.util.logging.config.file"
 		                         value="lib/logging.properties"/>
--->		</java>
+    	</java>
 	</target>
 
 	<!-- runs our Turn Client -->
