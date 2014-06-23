@@ -148,6 +148,7 @@ public class AllocationRequestListener
                         new Allocation(relayAddress, fiveTuple,
                             lifetimeAttribute.getLifetime());
                     this.turnStack.addNewServerAllocation(allocation);
+                    System.out.println("Added a new allocation.");
                 }
                 logger.finest("Added a new Allocation with relay address :"
 				+ allocation.getRelayAddress());
@@ -211,8 +212,9 @@ public class AllocationRequestListener
             }
             else
             {
-                
-                logger.finest("Error Code " + errorCode
+                System.err.println("Error Code " + (int)errorCode
+                        + " on Allocation Request");
+                logger.finest("Error Code " + (int)errorCode
                     + " on Allocation Request");
                 response =
                     MessageFactory.createAllocationErrorResponse(errorCode);
@@ -226,6 +228,7 @@ public class AllocationRequestListener
             }
             catch (Exception e)
             {
+        	System.err.println("Failed to send response");
                 logger.log(
                     Level.INFO, "Failed to send " + response + " through "
                         + evt.getLocalAddress(), e);
