@@ -40,7 +40,7 @@ public class TurnStack
     /**
      * The maximum no of Allocations per TurnStack.
      */
-    public static final int MAX_ALLOCATIONS = 5;
+    public static final int MAX_ALLOCATIONS = 500;
     
     /**
      * To track the portNo used.
