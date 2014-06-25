@@ -60,7 +60,12 @@ public class Allocation
      * The default lifetime allowed for a Allocation.
      */
     public static final long DEFAULT_LIFETIME = 10 * 60 * 1000;
-    
+
+    /**
+     * The max lifetime allowed for a Allocation.
+     */
+    public static final long MAX_LIFETIME = 60 * 60 * 1000;
+
     /**
      * The maximum no of Permissions per Allocation.
      */
@@ -233,7 +238,7 @@ public class Allocation
         synchronized (this)
         {
             this.expirationTime = System.currentTimeMillis() 
-                + Math.min(lifetime * 1000, Allocation.DEFAULT_LIFETIME);
+                + Math.min(lifetime * 1000, Allocation.MAX_LIFETIME);
         }
     }
 
