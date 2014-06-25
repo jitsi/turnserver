@@ -94,7 +94,7 @@ public class AllocationRequestListener
                 lifetimeAttribute =
                     AttributeFactory
                         .createLifetimeAttribute(
-                            (int) (Allocation.MAX_LIFETIME / 1000));
+                            (int) (Allocation.DEFAULT_LIFETIME / 1000));
             }
             
             EvenPortAttribute evenPortAttribute =

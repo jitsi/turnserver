@@ -57,9 +57,9 @@ public class Allocation
     private boolean expired = false;
 
     /**
-     * The maximumm lifetime allowed for a Allocation.
+     * The default lifetime allowed for a Allocation.
      */
-    public static final long MAX_LIFETIME = 10 * 60 * 1000;
+    public static final long DEFAULT_LIFETIME = 10 * 60 * 1000;
     
     /**
      * The maximum no of Permissions per Allocation.
@@ -146,7 +146,7 @@ public class Allocation
                         String password)
     {
         this(relayAddress, fiveTuple, username, password,
-            Allocation.MAX_LIFETIME);
+            Allocation.DEFAULT_LIFETIME);
     }
 
     /**
@@ -233,16 +233,16 @@ public class Allocation
         synchronized (this)
         {
             this.expirationTime = System.currentTimeMillis() 
-                + Math.min(lifetime * 1000, Allocation.MAX_LIFETIME);
+                + Math.min(lifetime * 1000, Allocation.DEFAULT_LIFETIME);
         }
     }
 
     /**
-     * Refreshes the allocation with the MAX_LIFETIME value.
+     * Refreshes the allocation with the DEFAULT_LIFETIME value.
      */
     public void refresh()
     {
-        this.setLifetime(Allocation.MAX_LIFETIME);
+        this.setLifetime(Allocation.DEFAULT_LIFETIME);
     }
 
     /**
@@ -266,7 +266,7 @@ public class Allocation
             if (expirationTime == -1)
             {
                 expired = false;
-                expirationTime = MAX_LIFETIME + System.currentTimeMillis();
+                expirationTime = DEFAULT_LIFETIME + System.currentTimeMillis();
             }
             else
             {

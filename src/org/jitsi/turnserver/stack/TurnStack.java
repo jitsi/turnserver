@@ -535,7 +535,7 @@ public class TurnStack
                 {
                     try
                     {
-                        serverAllocations.wait(Allocation.MAX_LIFETIME);
+                        serverAllocations.wait(Allocation.DEFAULT_LIFETIME);
                     }
                     catch (InterruptedException ie)
                     {
