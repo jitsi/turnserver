@@ -64,10 +64,15 @@ public class ChannelBindRequestListener
         if (logger.isLoggable(Level.FINER))
         {
             logger.setLevel(Level.FINEST);
+//            logger.finer("Received request " + evt);
         }
+        
         Message message = evt.getMessage();
         if (message.getMessageType() == Message.CHANNELBIND_REQUEST)
         {
+            logger.finest("Received Channel Bind request ");
+            logger.finest("Event tran : "+evt.getTransactionID());
+            
             Response response = null;
  
             TransportAddress clientAddress = evt.getRemoteAddress();

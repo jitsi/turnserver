@@ -146,6 +146,7 @@ public class TurnServer
         started = true;
         logger.info("Server started, listening on " + localAddress.getAddress()
             + ":" + localAddress.getPort());
+        
     }
 
     /**

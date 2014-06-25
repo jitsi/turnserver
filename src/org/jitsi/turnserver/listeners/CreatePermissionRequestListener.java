@@ -70,7 +70,7 @@ public class CreatePermissionRequestListener
         if (logger.isLoggable(Level.FINER))
         {
             logger.setLevel(Level.FINEST);
-            logger.finer("Received create permission request " + evt);
+//            logger.finer("Received request " + evt);
         }
         Message message = evt.getMessage();
         if (message.getMessageType() == Message.CREATEPERMISSION_REQUEST)

@@ -55,7 +55,8 @@ public class ConnectionBindRequestListener
     {
         if (logger.isLoggable(Level.FINER))
         {
-            logger.finer("Received request " + evt);
+            logger.setLevel(Level.FINEST);
+//            logger.finer("Received request " + evt);
         }
         Message message = evt.getMessage();
         if (message.getMessageType() == Message.CONNECTION_BIND_REQUEST)

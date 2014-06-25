@@ -67,8 +67,9 @@ public class AllocationRequestListener
         Message message = evt.getMessage();
         if (message.getMessageType() == Message.ALLOCATE_REQUEST)
         {
-            logger.finest("Received a Allocation Request");
-            
+	    logger.finest("Received a Allocation Request from "
+		    + evt.getRemoteAddress());
+           
             Response response = null;
             RequestedTransportAttribute requestedTransportAttribute =
                 (RequestedTransportAttribute) message
@@ -139,8 +140,10 @@ public class AllocationRequestListener
                 }
                 TransportAddress relayAddress =
                     turnStack.getNewRelayAddress(evenPortAttribute.isRFlag());
-                logger.finest("Added a new Relay Address "+relayAddress);
-                
+/*                logger.finest("Added a new Relay Address "+relayAddress);
+                System.out.println("Added a new Relay Address "+relayAddress
+                	+" for client "+evt.getRemoteAddress());
+*/              
                 Allocation allocation = null;
                 synchronized(this)
                 {
@@ -148,10 +151,11 @@ public class AllocationRequestListener
                         new Allocation(relayAddress, fiveTuple,
                             lifetimeAttribute.getLifetime());
                     this.turnStack.addNewServerAllocation(allocation);
-                    System.out.println("Added a new allocation.");
+//                    System.out.println("Added a new allocation.");
                 }
                 logger.finest("Added a new Allocation with relay address :"
-				+ allocation.getRelayAddress());
+				+ allocation.getRelayAddress()+" for client "
+				+evt.getRemoteAddress());
                 
                 response = MessageFactory.createAllocationResponse(
                      (Request) message,

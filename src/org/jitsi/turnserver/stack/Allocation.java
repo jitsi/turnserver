@@ -57,10 +57,10 @@ public class Allocation
     private boolean expired = false;
 
     /**
-     * The maximum lifetime allowed for a Permission.
+     * The maximumm lifetime allowed for a Allocation.
      */
     public static final long MAX_LIFETIME = 10 * 60 * 1000;
-
+    
     /**
      * The maximum no of Permissions per Allocation.
      */
@@ -827,5 +827,5 @@ public class Allocation
     {
         return this.getRelayAddress().toString();
     }
-    
+ 
 }

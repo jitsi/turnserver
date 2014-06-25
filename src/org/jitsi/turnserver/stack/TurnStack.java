@@ -117,7 +117,7 @@ public class TurnStack
     public void handleMessageEvent(StunMessageEvent ev)
     {
         Message msg = ev.getMessage();
-       
+        logger.finest("Received an Event."+ev.getTransactionID());
         if (!TurnStack.isTurnMessage(msg))
         {
             logger.finest("Ignored a non-TURN message!");

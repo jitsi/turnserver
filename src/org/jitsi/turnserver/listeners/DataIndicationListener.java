@@ -22,8 +22,8 @@ import org.jitsi.turnserver.stack.*;
  * @author Aakash Garg
  * 
  */
-public class DataIndicationListener extends IndicationListener {
-
+public class DataIndicationListener extends IndicationListener 
+{
     /**
      * parametrised constructor.
      * 
@@ -44,8 +44,10 @@ public class DataIndicationListener extends IndicationListener {
      *            the allocation associated with message.
      */
     @Override
-    public void handleIndication(Indication ind, Allocation alloc) {
-	if (ind.getMessageType() == Message.DATA_INDICATION) {
+    public void handleIndication(Indication ind, Allocation alloc) 
+    {
+	if (ind.getMessageType() == Message.DATA_INDICATION) 
+	{
 	    byte[] tran = ind.getTransactionID();
 
 	    XorPeerAddressAttribute xorPeerAddress 
@@ -61,7 +63,8 @@ public class DataIndicationListener extends IndicationListener {
 		System.out.println(line);
 /*		System.out.println("Received a Data indiction from " + peerAddr
 			+ ", message : " + line);
-*/	    } catch (UnsupportedEncodingException e) {
+*/	    } catch (UnsupportedEncodingException e) 
+{
 		System.err.println("Unable to convert to String!");
 	    }
 	}

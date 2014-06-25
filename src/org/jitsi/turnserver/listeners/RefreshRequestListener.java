@@ -67,16 +67,13 @@ public class RefreshRequestListener
     {
         if (logger.isLoggable(Level.FINER))
         {
-            logger.finer("Received request " + evt);
+            logger.setLevel(Level.FINEST);            
+//            logger.finer("Received request " + evt);
         }
         Message message = evt.getMessage();
-        if (message.getMessageType() == Message.ALLOCATE_REFRESH_REQUEST)
+        if (message.getMessageType() == Message.REFRESH_REQUEST)
         {
-            if (logger.isLoggable(Level.FINER))
-            {
-                logger.setLevel(Level.FINEST);
-                logger.finer("Received refresh request " + evt);
-            }
+            logger.finer("Received refresh request " + evt);
 
             LifetimeAttribute lifetimeAttribute =
                 (LifetimeAttribute) message.getAttribute(Attribute.LIFETIME);
@@ -94,12 +91,18 @@ public class RefreshRequestListener
             {
                 if (lifetimeAttribute != null)
                 {
+		    logger.finest("Refreshing allocation with relay addr "
+			    + allocation.getRelayAddress() + " with lifetime "
+			    + lifetimeAttribute.getLifetime());
                     allocation.refresh(lifetimeAttribute.getLifetime());
                     response = MessageFactory.createRefreshResponse(
                             (int) allocation.getLifetime());
                 }
                 else
                 {
+		    logger.finest("Refreshing allocation with relay addr "
+			    + allocation.getRelayAddress()
+			    + " with default lifetime");
                     allocation.refresh();
                     response = MessageFactory.createRefreshResponse(
                             (int) allocation.getLifetime());
@@ -107,6 +110,7 @@ public class RefreshRequestListener
             }
             else
             {
+        	logger.finest("Allocation mismatch error");
                 response = MessageFactory.createRefreshErrorResponse(
                             ErrorCodeAttribute.ALLOCATION_MISMATCH);
             }
