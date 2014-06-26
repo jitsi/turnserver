@@ -128,6 +128,8 @@ public class TurnServer
             new CreatePermissionRequestListener(turnStack);
         RefreshRequestListener refreshRequestListener = 
             new RefreshRequestListener(turnStack);
+        BindingRequestListener bindingRequestListener = 
+        	new BindingRequestListener(turnStack);
         
         SendIndicationListener sendIndListener = 
         	new SendIndicationListener(turnStack);
@@ -139,6 +141,7 @@ public class TurnServer
         connectRequestListener.start();
         createPermissionRequestListener.start();
         refreshRequestListener.start();
+        bindingRequestListener.start();
         
         sendIndListener.start();
         

@@ -631,6 +631,7 @@ public class TurnStack
         case Message.TURN_METHOD_CONNECT:
         case Message.TURN_METHOD_CONNECTION_BIND:
         case Message.TURN_METHOD_CONNECTION_ATTEMPT:
+        case Message.STUN_METHOD_BINDING:
             isTurnMessage = true;
             break;
         default:
