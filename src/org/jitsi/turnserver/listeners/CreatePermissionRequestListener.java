@@ -75,8 +75,8 @@ public class CreatePermissionRequestListener
         Message message = evt.getMessage();
         if (message.getMessageType() == Message.CREATEPERMISSION_REQUEST)
         {
-            System.out.println("Received create permission request ");
-            System.out.println("Event tran : "+evt.getTransactionID());
+            logger.finest("Received create permission request ");
+            logger.finest("Event tran : "+evt.getTransactionID());
             
             XorPeerAddressAttribute xorPeerAddressAttribute =
                 (XorPeerAddressAttribute) message
@@ -109,7 +109,7 @@ public class CreatePermissionRequestListener
             else if (!TurnStack.isIPAllowed(
                         xorPeerAddressAttribute.getAddress()))
             {
-                System.out.println("Peer Address requested " 
+                logger.finest("Peer Address requested " 
                         + xorPeerAddressAttribute.getAddress()
                         +" "+TurnStack.isIPAllowed(
                             xorPeerAddressAttribute.getAddress()));
@@ -121,13 +121,13 @@ public class CreatePermissionRequestListener
             }
             if(errorCode!=null)
             {
-                System.out.println("Creating error response : "+(int)errorCode);
+                logger.finest("Creating error response : "+(int)errorCode);
                 response = MessageFactory.createCreatePermissionErrorResponse(
                                 errorCode);
             }
             else
             {   
-                System.out.println("Creating success response.");
+                logger.finest("Creating success response.");
                 TransportAddress peerAddress 
                     = xorPeerAddressAttribute.getAddress();
                 Permission permission = null;
@@ -141,12 +141,12 @@ public class CreatePermissionRequestListener
                     permission = new Permission(peerAddress);
                 }
                 
-                System.out.println("Peer Address requested " 
+                logger.finest("Peer Address requested " 
                     + xorPeerAddressAttribute.getAddress()
                     +" "+TurnStack.isIPAllowed(
                         xorPeerAddressAttribute.getAddress()));
                 allocation.addNewPermission(permission);
-                System.out.println("Added permission to allocation.");
+                logger.finest("Added permission to allocation.");
                 response = MessageFactory.createCreatePermissionResponse();
             }
             try

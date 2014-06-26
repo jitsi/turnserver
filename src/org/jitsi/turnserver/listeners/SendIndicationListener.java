@@ -7,6 +7,8 @@
 
 package org.jitsi.turnserver.listeners;
 
+import java.util.logging.Logger;
+
 import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
@@ -21,7 +23,14 @@ import org.jitsi.turnserver.stack.*;
  * @author Aakash Garg
  * 
  */
-public class SendIndicationListener extends IndicationListener {
+public class SendIndicationListener extends IndicationListener 
+{
+    /**
+     * The <tt>Logger</tt> used by the <tt>SendIndicationListener</tt>
+     * class and its instances for logging output.
+     */
+    private static final Logger logger = Logger
+        .getLogger(SendIndicationListener.class.getName());
 
     /**
      * parametrised constructor.
@@ -43,9 +52,11 @@ public class SendIndicationListener extends IndicationListener {
      *            the allocation associated with message.
      */
     @Override
-    public void handleIndication(Indication ind, Allocation alloc) {
+    public void handleIndication(Indication ind, Allocation alloc) 
+    {
 	if(ind.getMessageType()==Message.SEND_INDICATION)
 	{
+	    logger.finest("Received a Send Indication message.");
 	    byte[] tran = ind.getTransactionID();
 	    XorPeerAddressAttribute xorPeerAddress
 	    	= (XorPeerAddressAttribute) ind
@@ -58,9 +69,12 @@ public class SendIndicationListener extends IndicationListener {
 	    {
 		RawMessage udpMessage = new RawMessage(data.getData(),
 			data.getDataLength(), peerAddr, alloc.getRelayAddress());
-		try {
+		try 
+		{
 		    this.getTurnStack().sendUdpMessage(udpMessage, peerAddr,
 			    alloc.getRelayAddress());
+		    logger.finest("Sent SendIndiaction to " + peerAddr
+			    + " from " + alloc.getRelayAddress());
 		} catch (StunException e) {
 		    System.err.println("Unable to send message.");
 		}
