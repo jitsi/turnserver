@@ -14,8 +14,6 @@ import org.ice4j.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
 
-import org.jitsi.turnserver.listeners.*;
-
 /**
  * Class to handle incoming ChannelData messages coming from Client to Server.
  * It first finds if there is a ChannelBind installed for the peer. 
@@ -33,7 +31,7 @@ public class ServerChannelDataEventHandler implements
      * logging output.
      */
     private static final Logger logger = Logger
-        .getLogger(CreatePermissionRequestListener.class.getName());
+        .getLogger(ServerChannelDataEventHandler.class.getName());
 
     /**
      * The turnStack to call.
@@ -79,10 +77,8 @@ public class ServerChannelDataEventHandler implements
     @Override
     public void handleMessageEvent(ChannelDataMessageEvent evt) 
     {
-	if (logger.isLoggable(Level.FINER))
-        {
-            logger.setLevel(Level.FINEST);
-            logger.finer("Received ChannelData message " + evt);
+        if(!logger.isLoggable(Level.FINER)){
+            logger.setLevel(Level.FINER);
         }
 	ChannelData channelData = evt.getChannelDataMessage();
 	char channelNo = channelData.getChannelNumber();
