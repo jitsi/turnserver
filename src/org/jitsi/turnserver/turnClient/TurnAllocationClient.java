@@ -15,6 +15,7 @@ import org.ice4j.socket.*;
 import org.ice4j.stack.*;
 import org.ice4j.stunclient.*;
 
+import org.jitsi.turnserver.collectors.AllocationResponseCollector;
 import org.jitsi.turnserver.listeners.*;
 import org.jitsi.turnserver.stack.*;
 
@@ -54,7 +55,8 @@ public class TurnAllocationClient
     public static void main(String[] args) throws IOException, StunException,
 	    InterruptedException
     {
-        String[] temp = {InetAddress.getLocalHost().toString(),"3478"};
+        String[] temp = {InetAddress.getLocalHost().getHostAddress(),"3478"};
+//        String[] temp = {"176.31.40.85","3478"};
         args = temp;
        Transport protocol = Transport.UDP;
         
@@ -62,7 +64,7 @@ public class TurnAllocationClient
         localAddress =
             new TransportAddress(InetAddress.getLocalHost(), 5678, protocol);
         serverAddress =
-            new TransportAddress(InetAddress.getLocalHost(), Integer.valueOf(
+            new TransportAddress(args[0], Integer.valueOf(
                 args[1]).intValue(), protocol);
         System.out.println("Client adress : "+localAddress);
         System.out.println("Server adress : "+serverAddress);
@@ -76,11 +78,13 @@ public class TurnAllocationClient
         TransportAddress peerAddr 
             = new TransportAddress(InetAddress.getLocalHost(), 11000, protocol);
         
-        //evt = sendChannelBindRequest((char) 0x4000,peerAddr);
-        //sendChannelDataMessage();
+        evt = sendChannelBindRequest((char) 0x4000,peerAddr);
+        sendChannelDataMessage();
+        System.out.println("Starting interactive communication.");
         doInteractiveComm();
-//        Thread.sleep(600*1000);
-        
+/*        System.out.println("Thread will now sleep.");
+        Thread.sleep(600*1000);
+*/        
         shutDown();
     }
 
@@ -99,13 +103,19 @@ public class TurnAllocationClient
         StunMessageEvent evt = null;
         try
         {
-            evt = requestSender.sendRequestAndWaitForResponse(
+	    AllocationResponseCollector allocResCollec 
+	    	= new AllocationResponseCollector(turnStack);
+/*	    turnStack.sendRequest(request, serverAddress, localAddress,
+		    allocResCollec);
+*/            evt = requestSender.sendRequestAndWaitForResponse(
                     request, serverAddress);
+		allocResCollec.processResponse((StunResponseEvent) evt);
         }
-        catch (StunException ex)
+        catch (Exception ex)
         {
             //this shouldn't happen since we are the ones that created the
             //request
+            ex.printStackTrace();
             System.out.println("Internal Error. Failed to encode a message");
             return null;
         }
@@ -265,16 +275,23 @@ public class TurnAllocationClient
     {
 	BufferedReader br 
 		= new BufferedReader(new InputStreamReader(System.in));
-	String line = null;
-	while((line=br.readLine())!=null)
+    System.out.println("Started interaction start typing message");
+	String line = br.readLine();
+	System.out.println("My first message : "+line);
+	while(line!=null)
 	{
-	    byte[] data = line.getBytes("UTF-8");
+	    byte[] data = line.getBytes();
 	    TransactionID tran = TransactionID.createNewTransactionID();
 	    TransportAddress peerAddress = new TransportAddress(
 		    InetAddress.getLocalHost(), 11000, Transport.UDP);
 	    Indication ind = MessageFactory.createSendIndication(peerAddress,
 		    data, tran.getBytes());
+	    System.out.println("Trying to send message to server");
 	    turnStack.sendIndication(ind, serverAddress, localAddress);
+	    System.out.println("message sent");
+	    
+	    System.out.println("Type a new message : ");
+	    line = br.readLine();
 	}
     }
 
