@@ -17,7 +17,7 @@ import org.jitsi.turnserver.stack.*;
 
 /**
  * The class that would be handling and responding to incoming Allocation
- * requests that are Allocation and sends a success or error response
+ * requests that are Allocation and sends a success or error response.
  * 
  * @author Aakash Garg
  */
@@ -102,7 +102,7 @@ public class AllocationRequestListener
             
             TransportAddress clientAddress = evt.getRemoteAddress();
             TransportAddress serverAddress = evt.getLocalAddress();
-            Transport transport = Transport.UDP;
+            Transport transport = serverAddress.getTransport();
             FiveTuple fiveTuple =
                 new FiveTuple(clientAddress, serverAddress, transport);
               
@@ -115,19 +115,50 @@ public class AllocationRequestListener
             {
                 errorCode = ErrorCodeAttribute.BAD_REQUEST;
             }
-            else if (requestedTransportAttribute.getRequestedTransport() != 17)
+            else if (requestedTransportAttribute.getRequestedTransport() 
+                == RequestedTransportAttribute.TCP)
+            {
+                if (!this.turnStack.isTCPAllowed())
+                    errorCode =
+                        ErrorCodeAttribute.UNSUPPORTED_TRANSPORT_PROTOCOL;
+                else if (reservationTokenAttribute != null)
+                {
+                    logger.finest("error : reservation token found in TCP message.");
+                    errorCode =
+                        ErrorCodeAttribute.UNSUPPORTED_TRANSPORT_PROTOCOL;
+                }
+                else if (evenPort != null)
+                {
+                    logger.finest("error : even port found in TCP message.");
+                    errorCode =
+                        ErrorCodeAttribute.UNSUPPORTED_TRANSPORT_PROTOCOL;
+                }
+                else if (dontFragmentAttribute != null)
+                {
+                    logger.finest("error : dont fragment found in TCP message.");
+                    errorCode =
+                        ErrorCodeAttribute.UNSUPPORTED_TRANSPORT_PROTOCOL;
+                }
+            }
+            else if (requestedTransportAttribute.getRequestedTransport() 
+                == RequestedTransportAttribute.UDP 
+                && !this.turnStack.isUDPAllowed())
             {
                 errorCode = ErrorCodeAttribute.UNSUPPORTED_TRANSPORT_PROTOCOL;
+                logger.finest("UDP not alllowed on Allocation Requests.");
             }
             else if (reservationTokenAttribute != null
                 && evenPortAttribute != null)
             {
                 errorCode = ErrorCodeAttribute.BAD_REQUEST;
+                logger
+                    .finest("Both reservation Token and Even PortAttribute are found in Allocation request.");
             }
             
             if (turnStack.getServerAllocation(fiveTuple)!=null)
             {
                 errorCode = ErrorCodeAttribute.ALLOCATION_MISMATCH; 
+                logger.finest("Allocation not found for the "+fiveTuple);
             }
             // do other checks here
             
@@ -138,8 +169,8 @@ public class AllocationRequestListener
                     evenPortAttribute =
                         AttributeFactory.createEvenPortAttribute(false);
                 }
-                TransportAddress relayAddress =
-                    turnStack.getNewRelayAddress(evenPortAttribute.isRFlag());
+                TransportAddress relayAddress = turnStack.getNewRelayAddress(
+                    evenPortAttribute.isRFlag(), serverAddress.getTransport());
 /*                logger.finest("Added a new Relay Address "+relayAddress);
                 System.out.println("Added a new Relay Address "+relayAddress
                 	+" for client "+evt.getRemoteAddress());
@@ -226,9 +257,14 @@ public class AllocationRequestListener
             
             try
             {
+                logger
+                    .fine("Trying to send response to "
+                        + evt.getRemoteAddress() + " from "
+                        + evt.getLocalAddress());
                 turnStack.sendResponse(
                     evt.getTransactionID().getBytes(), response,
                     evt.getLocalAddress(), evt.getRemoteAddress());
+                logger.finest("Response sent.");
             }
             catch (Exception e)
             {
