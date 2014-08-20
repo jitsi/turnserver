@@ -63,9 +63,10 @@ public class InteractiveUdpPeer {
 	Thread recThread = getRecThread();
 	recThread.start();
 	*/
+/*
 	FileReader fr = new FileReader(
 		"D:\\Eclipse\\turnserver\\samoleInputFile.txt");
-	//BufferedReader br = new BufferedReader(fr);
+*/	//BufferedReader br = new BufferedReader(fr);
 	BufferedReader br 
 		= new BufferedReader(new InputStreamReader(System.in));
 	String line = null;

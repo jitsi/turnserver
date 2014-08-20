@@ -32,7 +32,7 @@ public class ClientChannelDataEventHandler implements
      * logging output.
      */
     private static final Logger logger = Logger
-        .getLogger(CreatePermissionRequestListener.class.getName());
+        .getLogger(ClientChannelDataEventHandler.class.getName());
 
     /**
      * The turnStack to call.
