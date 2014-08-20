@@ -7,12 +7,15 @@
 
 package org.jitsi.turnserver.listeners;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.*;
+import java.util.logging.*;
 
-import org.ice4j.StunMessageEvent;
+import org.ice4j.*;
+import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
+
+import org.jitsi.turnserver.stack.*;
 
 /**
  * The class that would be handling and responding to incoming ConnectionBind
@@ -31,7 +34,7 @@ public class ConnectionBindRequestListener
     private static final Logger logger = Logger
         .getLogger(ConnectionBindRequestListener.class.getName());
 
-    private final StunStack stunStack;
+    private final TurnStack turnStack;
 
     /**
      * The indicator which determines whether this
@@ -46,7 +49,7 @@ public class ConnectionBindRequestListener
      */
     public ConnectionBindRequestListener(StunStack stunStack)
     {
-        this.stunStack = stunStack;
+        this.turnStack = (TurnStack)stunStack;
     }
 
     @Override
@@ -56,13 +59,85 @@ public class ConnectionBindRequestListener
         if (logger.isLoggable(Level.FINER))
         {
             logger.setLevel(Level.FINEST);
-//            logger.finer("Received request " + evt);
         }
         Message message = evt.getMessage();
         if (message.getMessageType() == Message.CONNECTION_BIND_REQUEST)
         {
             Response response = null;
-            // processing logic
+            Character errorCode = null;
+            
+            TransportAddress clientAddress = evt.getRemoteAddress();
+            TransportAddress serverAddress = evt.getLocalAddress();
+            Transport transport = evt.getLocalAddress().getTransport();
+            logger.finer("Received ConnectBind request " + evt + ", from "
+                + clientAddress + ", at " + serverAddress + " over "
+                + transport);
+            ConnectionIdAttribute connectionId = null;
+            if (transport != Transport.TCP)
+            {
+                errorCode = ErrorCodeAttribute.BAD_REQUEST;
+                logger.finest("Transport is not TCP.");
+            }
+            else if (!message.containsAttribute(Attribute.CONNECTION_ID))
+            {
+                errorCode = ErrorCodeAttribute.BAD_REQUEST;
+                logger.finest("ConnectionID not found");
+            }
+            else
+            {
+                connectionId = (ConnectionIdAttribute) message
+                    .getAttribute(Attribute.CONNECTION_ID);
+                logger.finest("Requested ConnectionId - "
+                    + connectionId.getConnectionIdValue());
+                if (!this.turnStack.isUnacknowledged(connectionId
+                    .getConnectionIdValue()))
+                {
+                    errorCode = ErrorCodeAttribute.BAD_REQUEST;
+                    logger.finest("ConnectionId-"
+                        + connectionId.getConnectionIdValue()
+                        + " not present.");
+                }
+            }
+            
+            if (errorCode != null)
+            {
+                logger
+                    .finest("Creating Connection Bind Error Response, errorCode:"
+                        + (int) errorCode);
+                response =
+                    MessageFactory
+                        .createConnectionBindErrorResponse(
+                            ErrorCodeAttribute.BAD_REQUEST);
+            }
+            else
+            {
+                // processing logic.
+                FiveTuple clientDataConnTuple =
+                    new FiveTuple(clientAddress, serverAddress, transport);
+                this.turnStack.acknowledgeConnectionId(
+                    connectionId.getConnectionIdValue(), clientDataConnTuple);
+                
+                logger.finest("Creating ConnectionBind Success Response");
+                response = MessageFactory.createConnectionBindResponse();
+            }
+            try
+            {
+                logger.finest("Sending ConnectionBind Response to "
+                    + clientAddress + " through " + serverAddress);
+                this.turnStack.sendResponse(
+                    evt.getTransactionID().getBytes(), response, serverAddress,
+                    clientAddress);
+            }
+            catch (StunException e)
+            {
+                logger.finest("Unable to send ConnectionBind Response to "
+                    + clientAddress + " through " + serverAddress);
+            }
+            catch (IOException e)
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
         else
         {
@@ -78,7 +153,7 @@ public class ConnectionBindRequestListener
     {
         if (!started)
         {
-            stunStack.addRequestListener(this);
+            turnStack.addRequestListener(this);
             started = true;
         }
     }
@@ -90,8 +165,7 @@ public class ConnectionBindRequestListener
      */
     public void stop()
     {
-        stunStack.removeRequestListener(this);
+        turnStack.removeRequestListener(this);
         started = false;
     }
-
 }
