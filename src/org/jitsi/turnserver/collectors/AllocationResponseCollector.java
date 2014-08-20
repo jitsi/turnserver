@@ -7,12 +7,14 @@
 
 package org.jitsi.turnserver.collectors;
 
+import java.io.IOException;
 import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
+import org.jitsi.turnserver.stack.TurnStack;
 
 /**
  * The class that would be handling to incoming Allocation responses.
@@ -59,6 +61,59 @@ public class AllocationResponseCollector
         {
             ErrorCodeAttribute errorCodeAttribute =
                 (ErrorCodeAttribute) message.getAttribute(Attribute.ERROR_CODE);
+            NonceAttribute nonceAttr = (NonceAttribute) message
+		    .getAttribute(Attribute.NONCE);
+//	    System.out.println("Nonce : "+new Nonce(nonceAttr.getNonce()));
+            Request request = MessageFactory.createAllocateRequest();
+            TransactionID tran = TransactionID.createNewTransactionID();
+            try {
+		request.setTransactionID(tran.getBytes());
+	    } catch (StunException e1) {
+		System.err.println("Unable to set tran ID.");
+	    }
+            request.putAttribute(nonceAttr);
+            String username = "JitsiGsocStudent";
+	    UsernameAttribute usernameAttr = AttributeFactory
+		    .createUsernameAttribute(username+":");
+/*	    
+	    byte[] key = this.stunStack.getCredentialsManager().getLocalKey(
+		    username);
+	    System.out.println("Username found "
+		    + (this.stunStack.getCredentialsManager()
+			    .checkLocalUserName(username)));
+	    System.out.println("User "
+		    + username
+		    + " found : "
+		    + TurnStack.toHexString(key));
+	    
+	    byte[] messageB = request.encode(stunStack);
+*/	    MessageIntegrityAttribute msgInt = AttributeFactory
+		    .createMessageIntegrityAttribute(username);
+	    RequestedTransportAttribute reqTrans = AttributeFactory
+		    .createRequestedTransportAttribute(
+			    RequestedTransportAttribute.UDP);
+	    try{
+//		    msgInt.encode(stunStack, messageB, 0, messageB.length);		
+	    }catch(Exception e)
+	    {
+		e.printStackTrace();
+	    }
+	    request.putAttribute(reqTrans);
+	    request.putAttribute(usernameAttr);
+	    request.putAttribute(msgInt);
+	    try {
+		this.stunStack.sendRequest(request, evt.getRemoteAddress(),
+		    evt.getLocalAddress(), this);
+	    }
+	    catch (Exception e) {
+		e.printStackTrace();
+//		System.err.println(e.getMessage());
+	    }
+            if(errorCodeAttribute != null)
+            {
+		System.out.println("Error Code : "
+			+ (int) errorCodeAttribute.getErrorCode());
+            }
             switch (errorCodeAttribute.getErrorCode())
             {
             case ErrorCodeAttribute.BAD_REQUEST:
@@ -91,10 +146,12 @@ public class AllocationResponseCollector
             case ErrorCodeAttribute.INSUFFICIENT_CAPACITY:
                 // code for insufficient capacity
                 break;
+                
             }
         }
         else if (message.getMessageType() == Message.ALLOCATE_RESPONSE)
         {
+            System.out.println("Allocate Sucess Response.");
             // code for doing processing of Allocation success response
         }
         else
