@@ -7,10 +7,12 @@
 
 package org.jitsi.turnserver.stack;
 
-import java.util.*;
-import java.util.logging.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.logging.Logger;
 
-import org.ice4j.*;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
 
 /**
  * This class is an implementation of Allocations in TURN server.
@@ -109,6 +111,18 @@ public class Allocation
     private final HashMap<TransportAddress, Character> peerToChannelMap =
         new HashMap<TransportAddress, Character>();
 
+    /**
+     * Maps one-to-one from ConnecionID to Data Connection.
+     */
+    private final HashMap<Integer,FiveTuple> connIdToDataConnMap
+         = new HashMap<Integer,FiveTuple>();
+    
+    /**
+     * Maps one-to-one from ConnecionID to Peer TCP Connection.
+     */
+    private final HashMap<Integer,FiveTuple> connIdToPeerConnMap
+        = new HashMap<Integer,FiveTuple>();
+    
     /**
      * Constructor to instantiate an Allocation without a username and password.
      * 
@@ -210,6 +224,79 @@ public class Allocation
     {
         return this.getFiveTuple().getServerTransportAddress();
     }
+    
+    /**
+     * Returns the Client Data Connection corresponding to Connection Id for
+     * which ConnectionBind Request has been received.
+     * 
+     * @param connectionId the ConnectionId for which Client Data Connection is
+     *            to be returned.
+     * @return Client Data Connection if exists else null.
+     */
+    public FiveTuple getDataConnection(int connectionId){
+        return this.connIdToDataConnMap.get(connectionId);
+    }
+    
+    /**
+     * Returns the Peer TCP Data Connection corresponding to Connection Id for
+     * which ConnectionBind Request has been received.
+     * 
+     * @param connectionId the ConnectionId for which Peer TCP Data Connection is
+     *            to be returned.
+     * @return Peer TCP Data Connection if exists else null.
+     */
+    public FiveTuple getPeerTCPConnection(int connectionId){
+        return this.connIdToPeerConnMap.get(connectionId);
+    }
+
+    /**
+     * Adds the Connection Id with corresponding Client Data Connection to for
+     * which ConnectionBind Request has been received.
+     * 
+     * @param connectionId the ConnectionId.
+     * @param clientDataConn Client Data Connection to corresponding
+     *            ConnectionId.
+     */
+    public void addDataConnection(int connectionId, FiveTuple clientDataConn)
+    {
+        this.connIdToDataConnMap.put(
+            connectionId, clientDataConn);
+    }
+
+    /**
+     * Adds the Connection Id corresponding to Peer TCP Data Connection for
+     * which ConnectionBind Request has been received.
+     * 
+     * @param connectionId the ConnectionId.
+     * @param peerDataConn Peer TCP Data Connection to corresponding
+     *            ConnectionId.
+     */
+    public void addPeerTCPConnection(int connectionId, FiveTuple peerDataConn)
+    {
+        this.connIdToPeerConnMap.put(connectionId,peerDataConn);
+    }
+    
+    /**
+     * Removes the Client Data Connection with corresponding to Connection Id.
+     * 
+     * @param connectionId the ConnectionId corresponding to Client Data
+     *            Connection.
+     */
+    public void removeDataConnection(int connectionId)
+    {
+        this.connIdToDataConnMap.remove(connectionId);
+    }
+
+    /**
+     * Removes the Peer TCP Data Connection corresponding to Connection Id.
+     * 
+     * @param connectionId the ConnectionId corresponding to Client Data
+     *            Connection.
+     */
+    public void removePeerTCPConnection(int connectionId)
+    {
+        this.connIdToPeerConnMap.remove(connectionId);
+    }    
     
     /**
      * Returns the lifetime associated with this Allocation. If the allocation
