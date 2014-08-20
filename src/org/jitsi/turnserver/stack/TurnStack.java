@@ -13,12 +13,16 @@ import java.util.*;
 import java.util.logging.*;
 
 import org.ice4j.*;
+import org.ice4j.attribute.*;
+import org.ice4j.ice.*;
 import org.ice4j.message.*;
 import org.ice4j.security.*;
 import org.ice4j.socket.*;
 import org.ice4j.stack.*;
 
 import org.jitsi.turnserver.*;
+import org.jitsi.turnserver.listeners.*;
+import org.jitsi.turnserver.socket.*;
 
 /**
  * The entry point to the TurnServer stack. The class is used to start, stop and
@@ -73,6 +77,32 @@ public class TurnStack
         = new HashMap<FiveTuple,Allocation>();
 
     /**
+     * Maps one-to-one from Data Connection to Connection Id.
+     */
+    private final HashMap<FiveTuple, Integer> dataConnToConnIdMap =
+        new HashMap<FiveTuple, Integer>();
+
+    /**
+     * Maps one-to-one from Peer TCP Connection to Connection Id.
+     */
+    private final HashMap<FiveTuple, Integer> peerConnToConnIdMap =
+        new HashMap<FiveTuple, Integer>();
+
+    /**
+     * Maps many-to-one from Connection Id to Allocation for where
+     * ConnectionBind Request has been received for Connection ID .
+     */
+    private final HashMap<Integer, Allocation> connIdToAllocMap =
+        new HashMap<Integer, Allocation>();
+
+    /**
+     * Contains unAcknowledged Connection Id. Every element will expire after
+     * min of 30 sec.
+     */
+    private final HashSet<Integer> unAcknowledgedConnId =
+        new HashSet<Integer>();
+
+    /**
      * The <tt>Thread</tt> which expires the <tt>TurnServerAllocation</tt>s of
      * this <tt>TurnStack</tt> and removes them from {@link #serverAllocations}
      * .
@@ -83,6 +113,21 @@ public class TurnStack
      * Indicates that if the don't fragment is support or not.
      */
     private static final boolean dontFragmentSupported = false;
+
+    /**
+     * Component variable.
+     */
+    private Component component;
+
+    /**
+     * Boolean to allow or disallow TCP messages. Default is allowed.
+     */
+    private boolean tcpAllowed = true;
+    
+    /**
+     * Boolean to allow or disallow UDP messages. Default is allowed.
+     */
+    private boolean udpAllowed = true;
     
     /**
      * Default Constructor. Initializes the NetAccessManager and
@@ -125,6 +170,7 @@ public class TurnStack
         }
         else
         {
+            removeUsernameIntegrityFromBinding(ev.getMessage());
             super.handleMessageEvent(ev);
             return;
         }
@@ -365,17 +411,35 @@ public class TurnStack
         synchronized(this.serverAllocations)
         {
             this.serverAllocations.put(allocation.getFiveTuple(), allocation);
-            IceUdpSocketWrapper sock;
+            IceSocketWrapper sock;
             if(true)
             {   // check if meanwhile other thread has put the same allocation.
                 try
                 {
 		    logger.finer("Adding a new Socket for : "
 			    + allocation.getRelayAddress());
+		    if(allocation.getRelayAddress().getTransport()==Transport.UDP)
+		    {
                     sock = new IceUdpSocketWrapper(
                                 new SafeCloseDatagramSocket(
                                     allocation.getRelayAddress()));
-                    this.addSocket(sock);
+		    }
+		    else
+		    {
+                        IceTcpEventizedServerSockerWrapper mySock2 =
+                            new IceTcpEventizedServerSockerWrapper(
+                                new ServerSocket(allocation.getRelayAddress()
+                                    .getPort()), this.getComponent());
+                        PeerTcpConnectEventListner listener =
+                            new PeerTcpConnectEventListner(this);
+                        mySock2.setEventListener(listener);
+                        sock = mySock2;
+/*
+                        sock =
+                            new IceTcpServerSocketWrapper(new ServerSocket(allocation
+                                .getRelayAddress().getPort()),this.getComponent());
+*/		    }
+            this.addSocket(sock);
 		    logger.finer("Added a new Socket for : "
 			    + allocation.getRelayAddress());
 		    try
@@ -394,6 +458,15 @@ public class TurnStack
                                 +"addNewServerAllocation ");
                     logger.log(Level.FINEST, e.getMessage());
              //       allocation.expire();
+                }
+                catch (UnknownHostException e)
+                {
+                    System.err.println("Unable to add TCP relay Address for : "
+                        + allocation.getRelayAddress());
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
                 }
             }
             this.serverRelayAllocationMap.put(
@@ -450,9 +523,10 @@ public class TurnStack
      * TODO : It has to be replaced with jitsi api.
      * 
      * @param evenCompulsary
-     * @return
+     * @return a new RelayAddress
      */
-    public TransportAddress getNewRelayAddress(boolean evenCompulsary)
+    public TransportAddress getNewRelayAddress(boolean evenCompulsary,
+        Transport transport)
     {
         InetAddress ipAddress = null;
         try
@@ -461,11 +535,10 @@ public class TurnStack
         }
         catch (UnknownHostException e)
         {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         TransportAddress possibleAddr =
-            new TransportAddress(ipAddress, nextPortNo++, Transport.UDP);
+            new TransportAddress(ipAddress, nextPortNo++, transport);
         int diff = evenCompulsary ? 2 : 1;
         nextPortNo += (evenCompulsary && (nextPortNo%2)==0) ? 0 : 1;
         while(this.reservedAddress.contains(possibleAddr) && nextPortNo < 65535)
@@ -475,6 +548,93 @@ public class TurnStack
                 new TransportAddress(ipAddress, nextPortNo++, Transport.UDP);
         }
         return possibleAddr;
+    }
+    
+    /**
+     * Adds a new ConnectionId for the specified peerAddress and for the
+     * specified allocation.
+     * 
+     * @param connectionId the connectionId created.
+     * @param peerAddress the peerAddress who initiated the TCP connection on
+     *            the relay address of the Allocation.
+     * @param allocation the allocation corresponding to the relay address on
+     *            which the connect request is received.
+     */
+    public void addUnAcknowlededConnectionId(int connectionId,
+        TransportAddress peerAddress, Allocation allocation)
+    {
+        FiveTuple peerTuple =
+            new FiveTuple(peerAddress,allocation.getRelayAddress(),
+                Transport.TCP);
+        this.unAcknowledgedConnId.add(connectionId);
+        this.peerConnToConnIdMap.put(
+            peerTuple, connectionId);
+        this.connIdToAllocMap.put(
+            connectionId, allocation);
+        allocation.addPeerTCPConnection(
+            connectionId, peerTuple);
+        logger.finest("Adding connectionId-" + connectionId + " for peerTuple-"
+            + peerTuple + " at allocation-" + allocation);
+    }
+
+    /**
+     * Acknowledges the ConnectionID associated with the specified client data
+     * connection.
+     * 
+     * @param connectionId the connectionId associated with the data connection.
+     * @param clientDataConnectionTuple the fiveTuple of the data connection.
+     */
+    public void acknowledgeConnectionId(int connectionId,
+        FiveTuple clientDataConnectionTuple)
+    {
+        if (!this.unAcknowledgedConnId.contains(connectionId))
+        {
+            throw new IllegalArgumentException("No such connectionId:"
+                + connectionId + " exists");
+        }
+        else
+        {
+            this.unAcknowledgedConnId.remove(connectionId);
+            this.dataConnToConnIdMap.put(
+                clientDataConnectionTuple, connectionId);
+            Allocation allocation = this.connIdToAllocMap.get(connectionId);
+            allocation.addDataConnection(
+                connectionId, clientDataConnectionTuple);
+            logger.finest("Acknowledging connectiodId-" + connectionId
+                + " for client data conn-" + clientDataConnectionTuple);
+        }
+    }
+    
+    /**
+     * Determines if the given ConnectionId is acknowledged or not.
+     * @param connectionID the connectionId to check.
+     * @return true if the specified connectionID is acknowledged, else false.
+     */
+    public boolean isUnacknowledged(int connectionID){
+        return this.unAcknowledgedConnId.contains(connectionID);
+    }
+    
+    /**
+     * Returns the Connection associated with the specified peerFiveTuple.
+     * 
+     * @param peerFiveTuple the peerFiveTuple for which to get the ConnectionID.
+     * @return connectionID associated with the specified peerFiveTuple.
+     */
+    public int getConnectionIdForPeer(FiveTuple peerFiveTuple)
+    {
+        return this.peerConnToConnIdMap.get(peerFiveTuple);
+    }
+
+    /**
+     * Returns the ConnectionID associated with the specified
+     * 
+     * @param dataConnTuple the five tuple of the data connection.
+     * @return the connectionId associated with the given data connection if
+     *         exists.
+     */
+    public int getConnectionIdForDataConn(FiveTuple dataConnTuple)
+    {
+        return this.dataConnToConnIdMap.get(dataConnTuple);
     }
     
     /**
@@ -641,6 +801,27 @@ public class TurnStack
 
     }
     
+    /**
+     * Removes the username and Message Integrity attribute form Binding
+     * messages only.
+     * 
+     * @param msg the Binding message from which the attribute is to be removed.
+     */
+    private void removeUsernameIntegrityFromBinding(Message msg)
+    {
+	if((msg.getMessageType() & 0xfeef) != Message.STUN_METHOD_BINDING)
+	{
+	    return;
+	}
+	if(msg.containsAttribute(Attribute.USERNAME))
+	{
+	    msg.removeAttribute(Attribute.USERNAME);
+	}
+	if(msg.containsAttribute(Attribute.MESSAGE_INTEGRITY))
+	{
+	    msg.removeAttribute(Attribute.MESSAGE_INTEGRITY);
+	}
+    }
     
     /**
      * Initializes the turnstack with the registered users with username and their
@@ -677,5 +858,76 @@ public class TurnStack
 	}
 	
     }
+    
+    /**
+     * Gets the component as RTP with TCP as transport also agent's stunStack as
+     * this TurnStack.
+     * 
+     * @return component.
+     */
+    public Component getComponent()
+    {
+        if (this.component == null)
+        {
+            Agent agent = new Agent();
+            agent.setStunStack(this);
+            IceMediaStream stream = new IceMediaStream(agent, "Turn Server");
+            this.component =
+                new Component(Component.RTP, Transport.TCP, stream);
+        }
+        return this.component;
+    }
 
+    /**
+     * Determines if the UDP messages are allowed in TURN server.
+     * 
+     * @return true if UDP is allowed else false.
+     */
+    public boolean isUDPAllowed()
+    {
+        return this.udpAllowed;
+    }
+
+    /**
+     * Sets the udpAllowed variable to enable disable UDP messages.
+     * 
+     * @param udpAllowed the boolean value to allow or disallow UDP messages.
+     */
+    public void setUDPAllowed(boolean udpAllowed)
+    {
+        this.udpAllowed = udpAllowed;
+    }
+
+    /**
+     * Determines if the TCP messages are allowed in TURN server.
+     * 
+     * @return true if TCP is allowed else false.
+     */
+    public boolean isTCPAllowed()
+    {
+        return this.tcpAllowed;
+    }
+
+    /**
+     * Sets the tcpAllowed variable to enable disable TCP messages.
+     * 
+     * @param tcpAllowed the boolean value to allow or disallow TCP messages.
+     */
+    public void setTCPAllowed(boolean tcpAllowed)
+    {
+        this.tcpAllowed = tcpAllowed;
+    }
+
+    /**
+     * Gets the allocation for the specified connectionID no.
+     * 
+     * @param connectionId the connectionID for which to get the allocation.
+     * @return Allocation corresponding to specified connectionID or nul if not
+     *         found.
+     */
+    public Allocation getAllocationFromConnectionId(int connectionId)
+    {
+        return this.connIdToAllocMap.get(connectionId);
+    }
+    
 }
