@@ -57,7 +57,7 @@ public abstract class IndicationListener implements MessageEventHandler
 	    
 	    TransportAddress clientAddress = evt.getRemoteAddress();
             TransportAddress serverAddress = evt.getLocalAddress();
-            Transport transport = Transport.UDP;
+            Transport transport = serverAddress.getTransport();
             FiveTuple fiveTuple =
                 new FiveTuple(clientAddress, serverAddress, transport);
             Allocation alloc = turnStack.getServerAllocation(fiveTuple);
