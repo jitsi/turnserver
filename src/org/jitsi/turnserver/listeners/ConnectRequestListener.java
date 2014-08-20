@@ -7,12 +7,29 @@
 
 package org.jitsi.turnserver.listeners;
 
-import java.util.logging.*;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.ice4j.*;
-import org.ice4j.attribute.*;
-import org.ice4j.message.*;
-import org.ice4j.stack.*;
+import org.ice4j.StunMessageEvent;
+import org.ice4j.Transport;
+import org.ice4j.TransportAddress;
+import org.ice4j.attribute.Attribute;
+import org.ice4j.attribute.AttributeFactory;
+import org.ice4j.attribute.ConnectionIdAttribute;
+import org.ice4j.attribute.ErrorCodeAttribute;
+import org.ice4j.attribute.XorPeerAddressAttribute;
+import org.ice4j.message.Message;
+import org.ice4j.message.MessageFactory;
+import org.ice4j.message.Response;
+import org.ice4j.socket.IceTcpSocketWrapper;
+import org.ice4j.stack.RequestListener;
+import org.ice4j.stack.StunStack;
+import org.jitsi.turnserver.stack.Allocation;
+import org.jitsi.turnserver.stack.FiveTuple;
+import org.jitsi.turnserver.stack.TurnStack;
 
 /**
  * The class that would be handling and responding to incoming Connect requests
@@ -31,7 +48,7 @@ public class ConnectRequestListener
     private static final Logger logger = Logger
         .getLogger(ConnectRequestListener.class.getName());
 
-    private final StunStack stunStack;
+    private final TurnStack turnStack;
 
     /**
      * The indicator which determines whether this
@@ -46,7 +63,7 @@ public class ConnectRequestListener
      */
     public ConnectRequestListener(StunStack stunStack)
     {
-        this.stunStack = stunStack;
+        this.turnStack = (TurnStack) stunStack;
     }
 
     @Override
@@ -55,16 +72,105 @@ public class ConnectRequestListener
     {
         if (logger.isLoggable(Level.FINER))
         {
-            logger.setLevel(Level.FINEST);            
-//            logger.finer("Received request " + evt);
+            logger.setLevel(Level.FINEST);
         }
         Message message = evt.getMessage();
         if (message.getMessageType() == message.CONNECT_REQUEST)
         {
-            XorPeerAddressAttribute xorPeerAddressAttribute =
-                (XorPeerAddressAttribute) message
-                    .getAttribute(Attribute.XOR_PEER_ADDRESS);
-            // code for processing the connect request.
+            logger.finer("Received Connect request " + evt);
+
+            Character errorCode = null;
+            XorPeerAddressAttribute peerAddress = null;
+            FiveTuple fiveTuple = null;
+            Response response = null;
+            ConnectionIdAttribute connectionId = null;
+            if (!message.containsAttribute(Attribute.XOR_PEER_ADDRESS))
+            {
+                errorCode = ErrorCodeAttribute.BAD_REQUEST;
+            }
+            else
+            {
+                peerAddress =
+                    (XorPeerAddressAttribute) message
+                        .getAttribute(Attribute.XOR_PEER_ADDRESS);
+                peerAddress.setAddress(
+                    peerAddress.getAddress(), 
+                    evt.getTransactionID().getBytes());
+                logger.finest("Peer Address requested : "
+                    + peerAddress.getAddress());
+                TransportAddress clientAddress = evt.getRemoteAddress();
+                TransportAddress serverAddress = evt.getLocalAddress();
+                Transport transport = evt.getLocalAddress().getTransport();
+                fiveTuple =
+                    new FiveTuple(clientAddress, serverAddress, transport);
+                Allocation allocation =
+                    this.turnStack.getServerAllocation(fiveTuple);
+                if (allocation == null)
+                {
+                    errorCode = ErrorCodeAttribute.ALLOCATION_MISMATCH;
+                }
+                else if(!allocation.isPermitted(peerAddress.getAddress())){
+                    errorCode = ErrorCodeAttribute.FORBIDDEN;
+                }
+                else
+                {
+                    // code for processing the connect request.
+                    connectionId = 
+                        AttributeFactory.createConnectionIdAttribute();
+                    logger.finest("Created ConnectionID : "
+                        + connectionId.getConnectionIdValue());
+                    try
+                    {
+                        Socket socket =
+                            new Socket(peerAddress.getAddress().getAddress(),
+                                peerAddress.getAddress().getPort());
+                        socket.setSoTimeout(30*1000);
+                        IceTcpSocketWrapper iceSocket =
+                            new IceTcpSocketWrapper(socket);
+                        this.turnStack.addSocket(iceSocket);
+                    }
+                    catch (IOException e)
+                    {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                    /**
+                     * TODO
+                     * Create a new TCP connection to the peer from relay
+                     * address. 
+                     * wait for at-least 30 seconds. 
+                     * If it fails then send 447 error code. 
+                     **/
+                    this.turnStack.addUnAcknowlededConnectionId(
+                        connectionId.getConnectionIdValue(),
+                        peerAddress.getAddress(), allocation);
+                    logger.finest("Creating Connect Success Response.");
+                    response =
+                        MessageFactory.createConnectResponse(connectionId
+                            .getConnectionIdValue());
+                    
+                }
+            }
+            if(errorCode != null){
+                response = MessageFactory.createConnectErrorResponse(errorCode);
+                logger.finest("error Code : "+(int)errorCode+ " on ConnectRequest");
+            }
+            try
+            {
+                logger.finest("Sending Connect Response");
+                turnStack.sendResponse(
+                    evt.getTransactionID().getBytes(), response,
+                    evt.getLocalAddress(), evt.getRemoteAddress());
+            }
+            catch (Exception e)
+            {
+            System.err.println("Failed to send response");
+                logger.log(
+                    Level.INFO, "Failed to send " + response + " through "
+                        + evt.getLocalAddress(), e);
+                // try to trigger a 500 response although if this one failed,
+                throw new RuntimeException("Failed to send a response", e);
+            }
         }
         else
         {
@@ -81,7 +187,7 @@ public class ConnectRequestListener
     {
         if (!started)
         {
-            stunStack.addRequestListener(this);
+            turnStack.addRequestListener(this);
             started = true;
         }
     }
@@ -93,7 +199,7 @@ public class ConnectRequestListener
      */
     public void stop()
     {
-        stunStack.removeRequestListener(this);
+        turnStack.removeRequestListener(this);
         started = false;
     }
 
