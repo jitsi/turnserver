@@ -2,8 +2,10 @@
 
 <project name="turnserver" basedir="." default="rebuild">
 	<property name="dest" value="classes"/>
+    <property name="dest-test" value="classes-test"/>
 	<property name="lib" value="lib"/>
 	<property name="src" value="src"/>
+	<property name="test" value="test"/>
     <property name="cmd.args" value="0.0.0.0 3487"/>
 	<property name="turnserver.jar" value="turnserver.jar"/>
 	<property name="doc" value="doc"/>
@@ -13,8 +15,13 @@
 		<pathelement location="${dest}"/>
 		<pathelement location="${lib}/jain-sdp.jar"/>
 		<pathelement location="${lib}/weupnp-0.1.2-SNAPSHOT.jar"/>
-		<pathelement location="${lib}/ice4j.jar"/>
+<!--		<pathelement location="${lib}/ice4j.jar"/> -->
+		<pathelement location="G:\\myPoject\ice4jProj\ice4j-read-only\\ice4j.jar"/>
 	</path>
+    <path id="test.class.path">
+        <path refid="project.class.path" />
+        <pathelement location="${dest-test}"/>
+    </path>
 
 	<!--Patternset to exclude files from the output directory:-->
 	<patternset id="dest.exclude">
@@ -39,7 +46,21 @@
 			<compilerarg value="-Xlint"/>
 		</javac>
 	</target>
-
+	
+	<!-- compiles all tests -->
+	    <target name="compile-tests" depends="init">
+	        <javac classpathref="test.class.path"
+	               debug="true"
+	               deprecation="true"
+	               destdir="${dest-test}"
+	               nowarn="false"
+	               optimize="true"
+	               target="1.5"
+	               source="1.5">
+	            <src path="${test}"/>
+	            <compilerarg value="-Xlint"/>
+	        </javac>
+	    </target>
 
 	<!-- copies ressource files if any to the classes directory -->
 	<target name="resource">
@@ -72,6 +93,7 @@
 	<target name="clean">
 		<delete failonerror="false" includeemptydirs="true">
 			<fileset dir="${dest}"/>
+            <fileset dir="${dest-test}"/>
 			<fileset dir="doc" />
 		</delete>
 		<delete file="${turnserver.jar}" failonerror="true" quiet="false"/>
@@ -89,6 +111,7 @@
 	<!-- create needed subdirs-->
 	<target name="init">
 		<mkdir dir="${dest}"/>
+        <mkdir dir="${dest-test}"/>
 	</target>
 
 	<!-- create jar file-->
@@ -101,9 +124,8 @@
 		</jar>
 	</target>
 
-
 	<!-- runs our Turn Server -->
-	<target name="turn-server">
+	<target name="turn-server" depends="rebuild">
 		<java fork="true"
 			classname="org.jitsi.turnserver.stack.TurnServer"
 		    classpathref="project.class.path">
@@ -115,15 +137,38 @@
 	</target>
 
 	<!-- runs our Turn Client -->
-	<target name="turn-client">
+	<target name="turn-udp-client">
 		<java fork="true"
 			classname="org.jitsi.turnserver.turnClient.TurnAllocationClient"
 			classpathref="project.class.path">
 
 			<!-- Tell java.util.logging about our logging preferences -->
-<!--			<sysproperty key="java.util.logging.config.file"
+			<sysproperty key="java.util.logging.config.file"
 						 value="lib/logging.properties"/>
--->		</java>
+		</java>
 	</target>
+	
+	<!-- runs our Turn Tcp Client -->
+	<target name="turn-tcp-client">
+		<java fork="true"
+			classname="org.jitsi.turnserver.turnClient.TurnTcpAllocationClient"
+			classpathref="project.class.path">
+
+			<!-- Tell java.util.logging about our logging preferences -->
+			<sysproperty key="java.util.logging.config.file"
+						 value="lib/logging.properties"/>
+		</java>
+	</target>
+	
+	<!-- runs our ICE test class -->
+		<target name="test-ice">
+			<java fork="true"
+				classname="test.Ice"
+			    classpathref="test.class.path">
+	            <!-- Tell java.util.logging about our logging preferences -->
+				<sysproperty key="java.util.logging.config.file"
+			                         value="lib/logging.properties"/>
+	    	</java>
+		</target>
 
 </project>
