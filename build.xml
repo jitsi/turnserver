@@ -160,6 +160,18 @@
 		</java>
 	</target>
 	
+	<!-- runs our Turn Tcp Peer -->
+	<target name="turn-tcp-peer">
+		<java fork="true"
+			classname="org.jitsi.turnserver.turnClient.TcpPeer"
+			classpathref="project.class.path">
+
+			<!-- Tell java.util.logging about our logging preferences -->
+			<sysproperty key="java.util.logging.config.file"
+						 value="lib/logging.properties"/>
+		</java>
+	</target>
+	
 	<!-- runs our ICE test class -->
 		<target name="test-ice">
 			<java fork="true"
