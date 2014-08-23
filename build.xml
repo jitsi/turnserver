@@ -15,8 +15,8 @@
 		<pathelement location="${dest}"/>
 		<pathelement location="${lib}/jain-sdp.jar"/>
 		<pathelement location="${lib}/weupnp-0.1.2-SNAPSHOT.jar"/>
-<!--		<pathelement location="${lib}/ice4j.jar"/> -->
-		<pathelement location="G:\\myPoject\ice4jProj\ice4j-read-only\\ice4j.jar"/>
+		<pathelement location="${lib}/ice4j.jar"/>
+<!--		<pathelement location="G:\\myPoject\ice4jProj\ice4j-read-only\\ice4j.jar"/>  -->
 	</path>
     <path id="test.class.path">
         <path refid="project.class.path" />
