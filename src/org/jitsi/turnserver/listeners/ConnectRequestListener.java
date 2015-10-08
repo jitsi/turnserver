@@ -87,7 +87,7 @@ public class ConnectRequestListener
             logger.setLevel(Level.FINEST);
         }
         Message message = evt.getMessage();
-        if (message.getMessageType() == message.CONNECT_REQUEST)
+        if (message.getMessageType() == Message.CONNECT_REQUEST)
         {
             logger.finer("Received Connect request " + evt);
 
