@@ -1,5 +1,10 @@
-.idea
-bin
-.project
+/classes/
+/classes-test/
+/junit-reports/
+/target/
+/ice4j.jar
 .classpath
-.settings
+.project
+.settings/
+bin/
+.idea

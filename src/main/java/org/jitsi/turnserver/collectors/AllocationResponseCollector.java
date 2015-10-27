@@ -19,14 +19,12 @@
 
 package org.jitsi.turnserver.collectors;
 
-import java.io.IOException;
 import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.attribute.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
-import org.jitsi.turnserver.stack.TurnStack;
 
 /**
  * The class that would be handling to incoming Allocation responses.
