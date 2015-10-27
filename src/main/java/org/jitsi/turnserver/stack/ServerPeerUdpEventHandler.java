@@ -122,7 +122,7 @@ public class ServerPeerUdpEventHandler
                 TransportAddress relayAddress =
                     peerTuple.getServerTransportAddress();
                 RawMessage rawMessage =
-                    new RawMessage(data, data.length, peerAddress, relayAddress);
+                    RawMessage.build(data, data.length, peerAddress, relayAddress);
                 try
                 {
                     logger.finest("Relaying data to peer-" + peerAddress
@@ -146,7 +146,8 @@ public class ServerPeerUdpEventHandler
                     this.turnStack.getConnectionIdForPeer(fiveTuple);
                 if (!allocation.isPermitted(remoteAddress))
                 {
-                    logger.finest("No permission installed for peer-"+remoteAddress);
+                    logger.finest("No permission installed for peer-"
+                        + remoteAddress);
                     return;
                 }
                 else
@@ -156,7 +157,7 @@ public class ServerPeerUdpEventHandler
                     if (dataConn != null)
                     {
                         RawMessage rawMessage =
-                            new RawMessage(data, data.length, dataConn,
+                            RawMessage.build(data, data.length, dataConn,
                                 allocation.getServerAddress());
                         try
                         {

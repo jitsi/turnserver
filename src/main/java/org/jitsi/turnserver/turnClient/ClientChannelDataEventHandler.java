@@ -26,7 +26,6 @@ import org.ice4j.*;
 import org.ice4j.message.*;
 import org.ice4j.stack.*;
 
-import org.jitsi.turnserver.listeners.*;
 import org.jitsi.turnserver.stack.*;
 
 /**
