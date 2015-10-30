@@ -53,27 +53,6 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <activation>
-        <jdk>(,1.8)</jdk>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <configuration>
-              <excludes>
-                <exclude>**/jdk8/**</exclude>
-              </excludes>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
-
   <repositories>
     <repository>
       <id>jitsi-maven-repository-releases</id>
