@@ -220,7 +220,7 @@ public class IceTcpEventizedServerSockerWrapper
                         MultiplexingSocket multiplexingSocket =
                             new MultiplexingSocket(tcpSocket);
                         component.getParentStream().getParentAgent()
-                            .getStunStack().addTcpSocket(
+                            .getStunStack().addSocket(
                                 new IceTcpSocketWrapper(multiplexingSocket));
 
                         sockets.add(multiplexingSocket);

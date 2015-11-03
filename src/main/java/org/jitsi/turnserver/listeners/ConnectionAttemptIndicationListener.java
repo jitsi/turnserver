@@ -113,7 +113,7 @@ public class ConnectionAttemptIndicationListener
                         3478);
                 IceTcpSocketWrapper sockWrapper =
                     new IceTcpSocketWrapper(socket);
-                this.getTurnStack().addTcpSocket(
+                this.getTurnStack().addSocket(
                     sockWrapper);
                 TransportAddress localAddr =
                     new TransportAddress(sockWrapper.getLocalAddress(),
@@ -151,7 +151,7 @@ public class ConnectionAttemptIndicationListener
                                 .finest("Received a ConnectionBind Sucess Response.");
                             String myMessage = "Aakash Garg";
                             RawMessage rawMessage =
-                                new RawMessage(myMessage.getBytes(),
+                                RawMessage.build(myMessage.getBytes(),
                                     myMessage.length(), serverAddress,
                                     localAddr);
                             try

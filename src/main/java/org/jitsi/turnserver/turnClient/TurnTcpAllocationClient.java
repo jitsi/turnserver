@@ -84,7 +84,7 @@ public class TurnTcpAllocationClient
         turnStack = new TurnStack(null, channelDataHandler);
         channelDataHandler.setTurnStack(turnStack);
         
-        turnStack.addTcpSocket(sock);
+        turnStack.addSocket(sock);
 
         requestSender = new BlockingRequestSender(turnStack, localAddress);
 
