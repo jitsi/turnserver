@@ -120,7 +120,7 @@ public class ServerChannelDataEventHandler implements
         TransportAddress destAddr = allocation.getPeerAddr(channelNo);
         if(destAddr != null)
         {
-	    RawMessage message = new RawMessage(data, data.length, destAddr,
+	    RawMessage message = RawMessage.build(data, data.length, destAddr,
 		    allocation.getClientAddress());
 	    try {
 		logger.finer("Dispatching a UDP message to " + destAddr

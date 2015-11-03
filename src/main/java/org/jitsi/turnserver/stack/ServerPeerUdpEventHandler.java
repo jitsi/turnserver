@@ -122,7 +122,8 @@ public class ServerPeerUdpEventHandler
                 TransportAddress relayAddress =
                     peerTuple.getServerTransportAddress();
                 RawMessage rawMessage =
-                    new RawMessage(data, data.length, peerAddress, relayAddress);
+                    RawMessage.build(data, data.length, peerAddress,
+                    relayAddress);
                 try
                 {
                     logger.finest("Relaying data to peer-" + peerAddress
@@ -156,8 +157,8 @@ public class ServerPeerUdpEventHandler
                     if (dataConn != null)
                     {
                         RawMessage rawMessage =
-                            new RawMessage(data, data.length, dataConn,
-                                allocation.getServerAddress());
+                            RawMessage.build(data, data.length, dataConn,
+                            allocation.getServerAddress());
                         try
                         {
                             logger.finest("Relaying data to client-" + dataConn

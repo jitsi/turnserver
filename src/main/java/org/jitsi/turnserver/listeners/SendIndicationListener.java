@@ -79,7 +79,7 @@ public class SendIndicationListener extends IndicationListener
 	    TransportAddress peerAddr = xorPeerAddress.getAddress();
 	    if(alloc!=null && alloc.isPermitted(peerAddr))
 	    {
-		RawMessage udpMessage = new RawMessage(data.getData(),
+		RawMessage udpMessage = RawMessage.build(data.getData(),
 			data.getDataLength(), peerAddr, alloc.getRelayAddress());
 		try 
 		{

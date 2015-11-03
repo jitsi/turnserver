@@ -883,9 +883,8 @@ public class TurnStack
         {
             Agent agent = new Agent();
             agent.setStunStack(this);
-            IceMediaStream stream = new IceMediaStream(agent, "Turn Server");
-            this.component =
-                new Component(Component.RTP, Transport.TCP, stream);
+            IceMediaStream stream = IceMediaStream.build(agent, "Turn Server");
+            this.component = Component.build(Component.RTP, stream);
         }
         return this.component;
     }
