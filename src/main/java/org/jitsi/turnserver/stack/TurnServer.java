@@ -25,11 +25,9 @@ import java.util.logging.*;
 
 import org.ice4j.*;
 import org.ice4j.socket.*;
-import org.ice4j.stunclient.*;
 
 import org.jitsi.turnserver.*;
 import org.jitsi.turnserver.listeners.*;
-import org.jitsi.turnserver.turnClient.StunClient;
 
 /**
  * The class to run a Turn server.
@@ -41,6 +39,9 @@ public class TurnServer
     private static Logger logger = Logger.getLogger(TurnServer.class.getName());
 
     private TransportAddress localAddress = null;
+
+    // requested maximum length of the queue of incoming connections
+    private int backlog = 50;
 
     private boolean started = false;
 
@@ -73,8 +74,6 @@ public class TurnServer
      */
     public static void main(String[] args) throws Exception
     {
-        // getPublicAddress();
-        // getLocalAddress();
         TransportAddress localAddress = null;
         if (args.length == 2)
         {
@@ -97,23 +96,6 @@ public class TurnServer
         }
     }
 
-    public static void getLocalAddress()
-    {
-        System.out.print("Server public IP and port : ");
-        System.out.println("127.0.0.1:3478");
-    }
-
-    public static void getPublicAddress() throws UnknownHostException,
-        Exception
-    {
-        System.out.print("Server public IP and port : ");
-        StunDiscoveryReport report =
-            StunClient.getReport("stunserver.org", "3478",
-                InetAddress.getLocalHost().getHostAddress(), "3478");
-        System.out.println(report.getPublicAddress());
-
-    }
-
     /**
      * Function to start the server
      * 
@@ -126,12 +108,7 @@ public class TurnServer
         {
             throw new RuntimeException("Local address not initialized");
         }
-        turnUdpSocket =
-            new IceUdpSocketWrapper(new SafeCloseDatagramSocket(localAddress));
-        /*
-         * BindingRequestListener listner = new
-         * BindingRequestListener(turnStack); listner.start();
-         */
+
         AllocationRequestListener allocationRequestListner =
             new AllocationRequestListener(turnStack);
         ChannelBindRequestListener channelBindRequestListener =
@@ -161,35 +138,33 @@ public class TurnServer
 
         sendIndListener.start();
 
-        System.out.println("Address - " + localAddress.getHostAddress() + ":"
-            + localAddress.getPort());
-      
+        System.out.println("Local address - " + localAddress.getHostAddress()
+            + ":" + localAddress.getPort());
+        // instance a server socket for TCP
         ServerSocket tcpServerSocket =
-            new ServerSocket(localAddress.getPort());
-        
-/*        Agent agent = new Agent();
-        agent.setStunStack(this.turnStack);
-        IceMediaStream stream = new IceMediaStream(agent,"Turn Server");
-        Component component =
-            new Component(Component.RTP, Transport.TCP, stream);
-        
-        sock2 = new IceTcpServerSocketWrapper(mySock,component);
-*/
+            new ServerSocket(localAddress.getPort(), backlog,
+            localAddress.getAddress());
+        // set reuse to allow binding the socket to the same address
+        tcpServerSocket.setReuseAddress(true);
         System.out.println("Adding a TCP server socket - "
             + tcpServerSocket.getLocalSocketAddress());
-/*        try
-        {
-            Thread.sleep(5000);
-        }
-        catch (InterruptedException e)
-        {
-            System.err.println("Unable to sleep thread");
-        }
-*/        turnTcpServerSocket =
-            new IceTcpServerSocketWrapper(tcpServerSocket, this.turnStack.getComponent());
-
-        turnStack.addSocket(turnUdpSocket);
+        // create ICE socket wrapper for TCP
+        turnTcpServerSocket = new IceTcpServerSocketWrapper(tcpServerSocket,
+            turnStack.getComponent());
+        // instance a datagram socket for UDP
+        SafeCloseDatagramSocket udpServerSocket =
+            new SafeCloseDatagramSocket(localAddress.getPort(),
+            localAddress.getAddress());
+        // set reuse to allow binding the datagram socket to the same address
+        udpServerSocket.setReuseAddress(true);
+        System.out.println("Adding a UDP server socket - "
+            + udpServerSocket.getLocalSocketAddress());
+        // create ICE socket wrapper for UDP
+        turnUdpSocket = new IceUdpSocketWrapper(udpServerSocket);
+        // add the TCP socket to the stack
         turnStack.addSocket(turnTcpServerSocket);
+        // add the UDP socket to the stack
+        turnStack.addSocket(turnUdpSocket);
         started = true;
         logger.info("Server started, listening on " + localAddress.getAddress()
             + ":" + localAddress.getPort());
@@ -220,13 +195,21 @@ public class TurnServer
         return started;
     }
 
+    /**
+     * Sets the incoming connection backlog.
+     *
+     * @param backlog
+     */
+    public void setBacklog(int backlog)
+    {
+        this.backlog = backlog;
+    }
+
     @Override
     public void finalize() throws Throwable
     {
         // to free resources by default if shutdown is not invoked before the
-        // object is destructed
-        
-            shutDown();
-        
+        // object is destroyed
+        shutDown();
     }
 }

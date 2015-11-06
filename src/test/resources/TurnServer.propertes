@@ -1,0 +1,17 @@
+org.jitsi.turnserver.udp_port = 3478;
+org.jitsi.turnserver.max_port = 65535;
+org.jitsi.turnserver.min_port = 49152;
+org.jitsi.turnserver.unpriv_user = ;
+org.jitsi.turnserver.max_client = ;
+org.jitsi.turnserver.max_relay_per_username = ;
+org.jitsi.turnserver.allocation_lifetime = ;
+org.jitsi.turnserver.nonce_key = 79897BC1042DF24AAE2FACFF9E2A6093;
+org.jitsi.turnserver.ca_file = ;
+org.jitsi.turnserver.cert_file = ;
+org.jitsi.turnserver.private_key_file = ;
+org.jitsi.turnserver.realm = ;
+org.jitsi.turnserver.bandwidth_per_allocation = ;
+org.jitsi.turnserver.restricted_bandwidth = ;
+org.jitsi.turnserver.account_method = ;
+org.jitsi.turnserver.account_file = ;
+
